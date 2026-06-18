@@ -68,13 +68,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         <hr className="mb-8 border-stone-200" />
 
         {/* MDX content */}
-        <div className="prose prose-stone prose-base max-w-none leading-relaxed
-          prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-stone-900
-          prose-p:text-stone-700 prose-p:leading-relaxed
-          prose-a:text-amber-600 prose-a:no-underline hover:prose-a:underline
-          prose-strong:text-stone-900
-          prose-li:text-stone-700
-        ">
+        <div className="prose prose-stone prose-headings:font-bold prose-a:text-amber-600 max-w-none">
           <MDXRemote source={post.content} />
         </div>
 

@@ -27,7 +27,7 @@ const TOOLS = [
     detail:
       'Enter your deductible, reimbursement rate, and carrier. See your estimated out-of-pocket cost before agreeing to any procedure.',
     cta: 'Calculate Coverage',
-    href: '/checker',
+    href: '/insurance',
     active: true,
     accent: 'border-blue-400',
     iconBg: 'bg-blue-50',

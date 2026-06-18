@@ -25,6 +25,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
+      url: 'https://tailcue.com/insurance',
+      lastModified: new Date('2026-06-18'),
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
       url: 'https://tailcue.com/blog',
       lastModified: new Date('2026-06-17'),
       changeFrequency: 'weekly',
