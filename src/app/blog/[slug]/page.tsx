@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { PawPrint } from 'lucide-react'
 import { MDXRemote } from 'next-mdx-remote/rsc'
 import { getAllPosts, getPostBySlug } from '@/lib/blog'
+import Footer from '@/components/footer'
 
 export async function generateStaticParams() {
   return getAllPosts().map((post) => ({ slug: post.slug }))
@@ -84,12 +85,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-stone-200 bg-white py-6 text-center">
-        <p className="text-xs text-stone-400">
-          Benchmark prices based on NAPHIA SOI 2025 and published industry data. For educational purposes only — not a substitute for veterinary advice.
-        </p>
-      </footer>
+      <Footer />
 
     </div>
   )

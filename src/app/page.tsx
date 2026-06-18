@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { PawPrint, ArrowRight } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import Footer from '@/components/footer'
 
 // ---------------------------------------------------------------------------
 // Tool definitions
@@ -148,12 +149,7 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-stone-200 bg-white py-6 text-center">
-        <p className="text-xs text-stone-400">
-          Benchmark prices based on NAPHIA SOI 2025 and published industry data. For educational purposes only — not a substitute for veterinary advice.
-        </p>
-      </footer>
+      <Footer />
 
     </div>
   )

@@ -38,6 +38,7 @@ import {
   calculateInsurancePayout,
   type InsuranceCalcResult,
 } from '@/lib/insurance-calculator'
+import Footer from '@/components/footer'
 
 // ---------------------------------------------------------------------------
 // Types & constants
@@ -1275,13 +1276,7 @@ function CheckerContent() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="mt-8 border-t border-stone-200 bg-white">
-        <div className="mx-auto max-w-[640px] px-4 py-6 text-center text-xs text-stone-400">
-          Benchmark prices based on NAPHIA SOI 2025 and published industry data. For educational
-          purposes only — not a substitute for veterinary advice.
-        </div>
-      </footer>
+      <Footer />
     </div>
 
     {/* ------------------------------------------------------------------ */}
