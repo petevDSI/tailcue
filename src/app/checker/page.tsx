@@ -791,7 +791,7 @@ function CheckerContent() {
 
         {/* Form card */}
         <Card className="rounded-2xl border border-stone-200 border-t-4 border-t-amber-500 shadow-md">
-          <CardContent className="space-y-7 p-7">
+          <CardContent className="space-y-7 p-5 sm:p-7">
 
             {/* Step 1 — Species */}
             <div className="space-y-4">
@@ -1148,7 +1148,7 @@ function CheckerContent() {
                         href="https://www.theswiftest.com/pet-insurance/"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-stone-900 transition-colors hover:bg-amber-600"
+                        className="inline-flex min-h-[44px] items-center rounded-lg bg-amber-500 px-4 text-sm font-semibold text-stone-900 transition-colors hover:bg-amber-600"
                       >
                         Compare Pet Insurance Plans →
                       </a>
@@ -1184,7 +1184,7 @@ function CheckerContent() {
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="flex items-center gap-2 rounded-xl border border-amber-400 bg-white px-4 py-2 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-50"
+                className="flex min-h-[44px] items-center gap-2 rounded-xl border border-amber-400 bg-white px-4 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-50"
               >
                 🖨️ Print This Report
               </button>
@@ -1244,12 +1244,12 @@ function CheckerContent() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleEmailSubmit()}
-                        className="h-10 flex-1 rounded-xl border-amber-200 bg-white"
+                        className="h-11 flex-1 rounded-xl border-amber-200 bg-white"
                       />
                       <Button
                         onClick={handleEmailSubmit}
                         disabled={!email}
-                        className="h-10 shrink-0 rounded-xl bg-amber-500 font-semibold text-stone-900 hover:bg-amber-600 disabled:opacity-60"
+                        className="h-11 shrink-0 rounded-xl bg-amber-500 font-semibold text-stone-900 hover:bg-amber-600 disabled:opacity-60"
                       >
                         <Send className="h-4 w-4" />
                         <span className="ml-1.5 hidden sm:inline">Send</span>
@@ -1265,7 +1265,7 @@ function CheckerContent() {
               <button
                 type="button"
                 onClick={handleReset}
-                className="text-sm font-medium text-amber-600 hover:underline"
+                className="inline-flex min-h-[44px] items-center px-4 text-sm font-medium text-amber-600 hover:underline"
               >
                 ← Check another procedure
               </button>
