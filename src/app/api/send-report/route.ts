@@ -298,7 +298,7 @@ export async function POST(req: NextRequest) {
 
   // Send email
   const { error: sendError } = await resend.emails.send({
-    from: 'Tailcue <onboarding@resend.dev>',
+    from: 'Tailcue <reports@tailcue.com>',
     to: email,
     subject: `Your Vet Quote Report — ${procedure.display_name}`,
     html,

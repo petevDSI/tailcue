@@ -1,232 +1,157 @@
 import Link from 'next/link'
-import { PROCEDURES } from '@/lib/seed-data'
+import { PawPrint, ArrowRight } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
 
 // ---------------------------------------------------------------------------
-// Category display config
+// Tool definitions
 // ---------------------------------------------------------------------------
 
-const CATEGORY_LABELS: Record<string, string> = {
-  wellness: 'Wellness',
-  diagnostics: 'Diagnostics',
-  surgical_routine: 'Routine Surgery',
-  surgical_common: 'Common Surgery',
-  emergency: 'Emergency',
-  skin_ear_eye: 'Skin / Ear / Eye',
-}
-
-const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
-  wellness:         { bg: '#dcfce7', text: '#15803d' },
-  diagnostics:      { bg: '#dbeafe', text: '#1d4ed8' },
-  surgical_routine: { bg: '#ede9fe', text: '#7c3aed' },
-  surgical_common:  { bg: '#ffedd5', text: '#c2410c' },
-  emergency:        { bg: '#fee2e2', text: '#dc2626' },
-  skin_ear_eye:     { bg: '#ccfbf1', text: '#0f766e' },
-}
+const TOOLS = [
+  {
+    emoji: '📊',
+    title: 'Price Check',
+    description: 'See if your vet quote is fair',
+    detail:
+      'Get an instant verdict — fair, high, or above market — based on real price data for your metro area. Includes questions to ask your vet.',
+    cta: 'Check a Quote',
+    href: '/checker',
+    active: true,
+    accent: 'border-amber-400',
+    iconBg: 'bg-amber-50',
+    iconText: 'text-amber-600',
+  },
+  {
+    emoji: '🛡️',
+    title: 'Insurance Calculator',
+    description: 'Find out what pet insurance actually pays',
+    detail:
+      'Enter your deductible, reimbursement rate, and carrier. See your estimated out-of-pocket cost before agreeing to any procedure.',
+    cta: 'Calculate Coverage',
+    href: '/checker',
+    active: true,
+    accent: 'border-blue-400',
+    iconBg: 'bg-blue-50',
+    iconText: 'text-blue-600',
+  },
+  {
+    emoji: '🩺',
+    title: 'Care',
+    description: 'Track your pet\'s chronic condition',
+    detail:
+      'Log symptoms, medications, and vet visits in one place — so every appointment starts with the full picture.',
+    cta: null,
+    href: null,
+    active: false,
+    accent: 'border-stone-200',
+    iconBg: 'bg-stone-100',
+    iconText: 'text-stone-400',
+  },
+] as const
 
 // ---------------------------------------------------------------------------
-// Page (server component — no 'use client')
+// Page (server component)
 // ---------------------------------------------------------------------------
 
 export default function HomePage() {
   return (
-    <div style={{ fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif', background: '#FAFAF9', margin: 0 }}>
+    <div className="min-h-screen bg-stone-50" style={{ fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif' }}>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Header                                                               */}
-      {/* ------------------------------------------------------------------ */}
-      <header style={{ background: '#fff', borderBottom: '1px solid #E7E5E4' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 36, height: 36, background: '#F59E0B', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
-              🐾
+      {/* Header */}
+      <header className="border-b border-stone-200 bg-white">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500">
+              <PawPrint className="h-5 w-5 text-white" />
             </div>
-            <span style={{ fontWeight: 700, fontSize: 18, color: '#1C1917', letterSpacing: '-0.3px' }}>Tailcue</span>
+            <div>
+              <span className="text-[17px] font-bold tracking-tight text-stone-900">Tailcue</span>
+              <span className="ml-2 hidden text-sm text-stone-400 sm:inline">Smart tools for pet owners</span>
+            </div>
           </div>
           <Link
             href="/checker"
-            style={{ background: '#F59E0B', color: '#1C1917', fontWeight: 700, padding: '9px 20px', borderRadius: 8, textDecoration: 'none', fontSize: 14 }}
+            className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-stone-900 transition-colors hover:bg-amber-600"
           >
             Check a Quote →
           </Link>
         </div>
       </header>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Hero                                                                 */}
-      {/* ------------------------------------------------------------------ */}
-      <section style={{ background: 'linear-gradient(160deg, #fffbeb 0%, #fef3c7 50%, #fafaf9 100%)', padding: '80px 24px 72px', textAlign: 'center' }}>
-        <div style={{ maxWidth: 680, margin: '0 auto' }}>
-          {/* Trust badge */}
-          <div style={{ display: 'inline-block', background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', borderRadius: 999, padding: '6px 18px', fontSize: 13, fontWeight: 600, marginBottom: 32 }}>
+      {/* Hero */}
+      <section className="border-b border-stone-100 bg-gradient-to-b from-amber-50 to-stone-50 px-6 py-16 text-center">
+        <div className="mx-auto max-w-xl">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-semibold text-amber-800">
             Independent · Pet-Owner Side · Free Forever
           </div>
-
-          <h1 style={{ fontSize: 'clamp(32px, 5vw, 54px)', fontWeight: 900, color: '#1C1917', letterSpacing: '-1.5px', lineHeight: 1.08, margin: '0 0 4px' }}>
-            Know if your vet quote is fair.
+          <h1 className="mb-4 text-[clamp(28px,5vw,44px)] font-extrabold leading-tight tracking-tight text-stone-900">
+            Smart tools for pet owners
           </h1>
-          <p style={{ fontSize: 'clamp(32px, 5vw, 54px)', fontWeight: 900, color: '#F59E0B', letterSpacing: '-1.5px', lineHeight: 1.08, margin: '0 0 28px' }}>
-            before you say yes.
-          </p>
-
-          <p style={{ fontSize: 18, color: '#44403C', maxWidth: 520, margin: '0 auto 40px', lineHeight: 1.65 }}>
-            Enter your quote, ZIP code, and procedure. Get an instant plain-English verdict —
-            fair, high, or above market — and the questions to ask your vet.
-          </p>
-
-          <Link
-            href="/checker"
-            style={{ display: 'inline-block', background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: '#1C1917', fontWeight: 700, fontSize: 17, padding: '16px 40px', borderRadius: 12, textDecoration: 'none', boxShadow: '0 4px 14px rgba(245,158,11,0.4)' }}
-          >
-            Check My Vet Quote →
-          </Link>
-
-          <p style={{ marginTop: 14, fontSize: 13, color: '#9ca3af' }}>
-            Free. No account required. Takes 30 seconds.
+          <p className="mx-auto max-w-md text-base leading-relaxed text-stone-500">
+            Understand vet pricing, estimate what insurance really pays, and make confident decisions for your pet.
           </p>
         </div>
       </section>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Trust bar                                                            */}
-      {/* ------------------------------------------------------------------ */}
-      <section style={{ background: '#fff', borderTop: '1px solid #E7E5E4', borderBottom: '1px solid #E7E5E4', padding: '20px 24px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
-          {[
-            { icon: '🐾', text: 'Independent — not affiliated with any vet practice' },
-            { icon: '📊', text: 'Based on NAPHIA claims data & published benchmarks' },
-            { icon: '🚫', text: 'No ads. No pet insurance company funding.' },
-            { icon: '✓',  text: '35 procedures covered' },
-          ].map(({ icon, text }) => (
-            <div
-              key={text}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f9fafb', border: '1px solid #E7E5E4', borderRadius: 999, padding: '8px 16px', fontSize: 13, color: '#44403C', fontWeight: 500 }}
-            >
-              <span>{icon}</span>
-              <span>{text}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* How it works                                                         */}
-      {/* ------------------------------------------------------------------ */}
-      <section style={{ padding: '80px 24px', textAlign: 'center', background: '#FAFAF9' }}>
-        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800, color: '#1C1917', margin: '0 0 12px', letterSpacing: '-0.5px' }}>
-            How it works
-          </h2>
-          <p style={{ fontSize: 16, color: '#78716c', margin: '0 0 52px' }}>
-            Three steps. Thirty seconds. No veterinary expertise required.
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 24, marginBottom: 48 }}>
-            {[
-              {
-                icon: '🐾',
-                title: 'Select your pet & procedure',
-                body: 'Choose dog or cat, then pick from 35 common procedures — from spays to TPLO surgery to emergency visits.',
-              },
-              {
-                icon: '📍',
-                title: 'Enter your quote & ZIP',
-                body: 'Tell us what you were quoted and where you live. We look up fair price ranges for your metro area.',
-              },
-              {
-                icon: '✅',
-                title: 'Get your verdict',
-                body: 'See instantly if your quote is fair, slightly high, or above market — with plain-English explanations and questions to ask your vet.',
-              },
-            ].map(({ icon, title, body }) => (
-              <div
-                key={title}
-                style={{ background: '#fff', borderRadius: 16, padding: '36px 28px', boxShadow: '0 1px 4px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.04)', textAlign: 'center' }}
+      {/* Tool cards */}
+      <main className="mx-auto max-w-5xl px-6 py-14">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          {TOOLS.map((tool) => {
+            const cardInner = (
+              <Card
+                className={`h-full overflow-hidden rounded-2xl border-t-4 shadow-sm transition-shadow ${tool.accent} ${
+                  tool.active
+                    ? 'border border-stone-200 hover:shadow-md'
+                    : 'border border-stone-200 opacity-60'
+                }`}
               >
-                <div style={{ fontSize: 40, marginBottom: 18 }}>{icon}</div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: '#1C1917', margin: '0 0 10px' }}>{title}</h3>
-                <p style={{ fontSize: 14, color: '#78716c', lineHeight: 1.65, margin: 0 }}>{body}</p>
+                <CardContent className="flex h-full flex-col p-7">
+                  {/* Icon */}
+                  <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-xl text-2xl ${tool.iconBg}`}>
+                    {tool.emoji}
+                  </div>
+
+                  {/* Coming soon badge */}
+                  {!tool.active && (
+                    <span className="mb-3 inline-flex w-fit items-center rounded-full bg-stone-200 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-stone-500">
+                      Coming Soon
+                    </span>
+                  )}
+
+                  {/* Text */}
+                  <h2 className="mb-1 text-[17px] font-bold text-stone-900">{tool.title}</h2>
+                  <p className="mb-3 text-sm font-medium text-stone-500">{tool.description}</p>
+                  <p className="mb-6 flex-1 text-sm leading-relaxed text-stone-400">{tool.detail}</p>
+
+                  {/* CTA */}
+                  {tool.active && tool.cta ? (
+                    <div className="mt-auto flex items-center gap-1.5 text-sm font-semibold text-amber-600">
+                      {tool.cta}
+                      <ArrowRight className="h-4 w-4" />
+                    </div>
+                  ) : (
+                    <div className="mt-auto text-sm text-stone-300">Available soon</div>
+                  )}
+                </CardContent>
+              </Card>
+            )
+
+            return tool.active && tool.href ? (
+              <Link key={tool.title} href={tool.href} className="block">
+                {cardInner}
+              </Link>
+            ) : (
+              <div key={tool.title} className="cursor-default">
+                {cardInner}
               </div>
-            ))}
-          </div>
-
-          <Link
-            href="/checker"
-            style={{ display: 'inline-block', background: '#F59E0B', color: '#1C1917', fontWeight: 700, fontSize: 16, padding: '14px 36px', borderRadius: 12, textDecoration: 'none' }}
-          >
-            Check My Quote Now
-          </Link>
+            )
+          })}
         </div>
-      </section>
+      </main>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Procedure grid                                                        */}
-      {/* ------------------------------------------------------------------ */}
-      <section style={{ background: '#fffbeb', padding: '80px 24px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 44 }}>
-            <h2 style={{ fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800, color: '#1C1917', margin: '0 0 12px', letterSpacing: '-0.5px' }}>
-              Procedures We Cover
-            </h2>
-            <p style={{ fontSize: 16, color: '#78716c', margin: 0 }}>
-              Click any procedure to check a price instantly.
-            </p>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 12 }}>
-            {PROCEDURES.map((proc) => {
-              const speciesDefault = proc.species === 'cat' ? 'cat' : 'dog'
-              const speciesLabel =
-                proc.species === 'dog' ? '🐕 Dog' :
-                proc.species === 'cat' ? '🐈 Cat' :
-                '🐕🐈 Both'
-              const catColor = CATEGORY_COLORS[proc.category] ?? { bg: '#f3f4f6', text: '#374151' }
-              return (
-                <Link
-                  key={proc.id}
-                  href={`/checker?procedure=${proc.slug}&species=${speciesDefault}`}
-                  style={{ display: 'block', background: '#fff', borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', textDecoration: 'none' }}
-                >
-                  <div style={{ display: 'inline-block', background: catColor.bg, color: catColor.text, fontSize: 11, fontWeight: 600, borderRadius: 999, padding: '3px 9px', marginBottom: 8, whiteSpace: 'nowrap' }}>
-                    {CATEGORY_LABELS[proc.category]}
-                  </div>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: '#1C1917', lineHeight: 1.35, marginBottom: 6 }}>
-                    {proc.display_name}
-                  </div>
-                  <div style={{ fontSize: 12, color: '#9ca3af' }}>{speciesLabel}</div>
-                </Link>
-              )
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Why this exists                                                      */}
-      {/* ------------------------------------------------------------------ */}
-      <section style={{ padding: '80px 24px', textAlign: 'center', background: '#FAFAF9' }}>
-        <div style={{ maxWidth: 680, margin: '0 auto' }}>
-          <div style={{ fontSize: 52, marginBottom: 24 }}>💡</div>
-          <h2 style={{ fontSize: 'clamp(22px, 3.5vw, 32px)', fontWeight: 800, color: '#1C1917', margin: '0 0 20px', letterSpacing: '-0.5px', lineHeight: 1.2 }}>
-            Veterinary prices have outpaced inflation for 4 years in a row.
-          </h2>
-          <p style={{ fontSize: 16, color: '#44403C', lineHeight: 1.75, margin: '0 0 20px' }}>
-            Pet owners are facing an affordability crisis — 81% of veterinarians report clients
-            are more cost-sensitive than ever, yet there&apos;s no independent tool that tells you
-            if a quote is fair.
-          </p>
-          <p style={{ fontSize: 16, fontWeight: 700, color: '#F59E0B', margin: 0 }}>
-            Tailcue is the independent, pet-owner-side answer to that gap.
-          </p>
-        </div>
-      </section>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Footer                                                               */}
-      {/* ------------------------------------------------------------------ */}
-      <footer style={{ background: '#fff', borderTop: '1px solid #E7E5E4', padding: '24px' }}>
-        <p style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', margin: 0 }}>
-          Benchmark prices based on NAPHIA SOI 2025 and published industry data. For educational
-          purposes only — not a substitute for veterinary advice.
+      {/* Footer */}
+      <footer className="border-t border-stone-200 bg-white py-6 text-center">
+        <p className="text-xs text-stone-400">
+          Benchmark prices based on NAPHIA SOI 2025 and published industry data. For educational purposes only — not a substitute for veterinary advice.
         </p>
       </footer>
 
