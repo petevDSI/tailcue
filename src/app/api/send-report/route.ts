@@ -154,7 +154,7 @@ function buildEmail({
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Your VetQuoteCheck Report</title>
+  <title>Your Tailcue Report</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f9fafb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; padding: 32px 16px;">
@@ -168,7 +168,7 @@ function buildEmail({
               <table cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="width: 36px; height: 36px; background-color: rgba(255,255,255,0.2); border-radius: 8px; text-align: center; vertical-align: middle; font-size: 20px;">🐾</td>
-                  <td style="padding-left: 10px; font-size: 18px; font-weight: 700; color: #ffffff;">VetQuoteCheck</td>
+                  <td style="padding-left: 10px; font-size: 18px; font-weight: 700; color: #ffffff;">Tailcue</td>
                 </tr>
               </table>
             </td>
@@ -210,7 +210,7 @@ function buildEmail({
           <tr>
             <td style="background-color: #f3f4f6; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none; padding: 16px 28px; text-align: center;">
               <p style="margin: 0; font-size: 12px; color: #9ca3af;">
-                Powered by <strong>VetQuoteCheck.com</strong> — helping pet owners understand veterinary pricing.<br />
+                Powered by <strong>Tailcue.com</strong> — helping pet owners understand veterinary pricing.<br />
                 Benchmark prices based on NAPHIA SOI 2025 and industry data. For educational purposes only.
               </p>
             </td>
@@ -298,7 +298,7 @@ export async function POST(req: NextRequest) {
 
   // Send email
   const { error: sendError } = await resend.emails.send({
-    from: 'VetQuoteCheck <onboarding@resend.dev>',
+    from: 'Tailcue <onboarding@resend.dev>',
     to: email,
     subject: `Your Vet Quote Report — ${procedure.display_name}`,
     html,

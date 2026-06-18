@@ -40,7 +40,7 @@ export default function HomePage() {
             <div style={{ width: 36, height: 36, background: '#F59E0B', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
               🐾
             </div>
-            <span style={{ fontWeight: 700, fontSize: 18, color: '#1C1917', letterSpacing: '-0.3px' }}>VetQuoteCheck</span>
+            <span style={{ fontWeight: 700, fontSize: 18, color: '#1C1917', letterSpacing: '-0.3px' }}>Tailcue</span>
           </div>
           <Link
             href="/checker"
@@ -215,7 +215,7 @@ export default function HomePage() {
             if a quote is fair.
           </p>
           <p style={{ fontSize: 16, fontWeight: 700, color: '#F59E0B', margin: 0 }}>
-            VetQuoteCheck is the independent, pet-owner-side answer to that gap.
+            Tailcue is the independent, pet-owner-side answer to that gap.
           </p>
         </div>
       </section>
