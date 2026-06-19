@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { PawPrint } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 import Footer from '@/components/footer'
 
 // ── Constants ─────────────────────────────────────────────────────────────
@@ -45,16 +47,31 @@ function calcScenario(cost: number, deductible: number, reimbPct: number) {
   return { insurancePays: ins, ownerPays, savings: ins }
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────
+// ── Page content (needs Suspense because of useSearchParams) ──────────────
 
-export default function InsurancePage() {
+function InsuranceContent() {
+  const searchParams = useSearchParams()
+  const initialSlug = searchParams.get('procedure') ?? ''
+
+  const [procedures, setProcedures] = useState<{ slug: string; display_name: string }[]>([])
+  const [procedureSlug, setProcedureSlug] = useState(initialSlug)
   const [hasInsurance, setHasInsurance] = useState<'yes' | 'no' | null>(null)
-  const [procedureName, setProcedureName] = useState('')
   const [costStr, setCostStr] = useState('')
   const [carrier, setCarrier] = useState('')
   const [deductibleStr, setDeductibleStr] = useState('')
   const [reimbPct, setReimbPct] = useState<number | null>(null)
   const [deductibleMet, setDeductibleMet] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    supabase
+      .from('procedures')
+      .select('slug, display_name')
+      .eq('is_active', true)
+      .order('sort_order')
+      .then(({ data }) => {
+        if (data) setProcedures(data as { slug: string; display_name: string }[])
+      })
+  }, [])
 
   const cost = parseFloat(costStr) || 0
   const deductible = parseFloat(deductibleStr) || 0
@@ -134,13 +151,18 @@ export default function InsurancePage() {
             <div className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-stone-600">Procedure</label>
-                <input
-                  type="text"
-                  value={procedureName}
-                  onChange={(e) => setProcedureName(e.target.value)}
-                  placeholder="e.g. Dog spay, ACL surgery"
-                  className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm text-stone-800 placeholder-stone-300 focus:border-amber-400 focus:outline-none"
-                />
+                <select
+                  value={procedureSlug}
+                  onChange={(e) => setProcedureSlug(e.target.value)}
+                  className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm text-stone-800 focus:border-amber-400 focus:outline-none"
+                >
+                  <option value="">Select procedure…</option>
+                  {procedures.map((p) => (
+                    <option key={p.slug} value={p.slug}>
+                      {p.display_name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-stone-600">Estimated cost</label>
@@ -386,5 +408,21 @@ export default function InsurancePage() {
 
       <Footer />
     </div>
+  )
+}
+
+// ── Default export — Suspense required for useSearchParams ────────────────
+
+export default function InsurancePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-stone-50">
+          <p className="text-stone-400">Loading…</p>
+        </div>
+      }
+    >
+      <InsuranceContent />
+    </Suspense>
   )
 }
