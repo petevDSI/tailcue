@@ -88,10 +88,11 @@ async function scrapeUrl(url: string): Promise<string> {
 // ── Claude extraction ─────────────────────────────────────────────────────
 
 async function extractFacts(rawContent: string): Promise<ExtractedPolicyFacts> {
-  // 20k covers most PDFs in full and gets further into long HTML pages.
-  // Embrace's 40k state-terms page still needs a PDF source swap to fully solve.
-  const LIMIT = 20_000
-  const truncated = rawContent.slice(0, LIMIT)
+  // Sonnet 4.6 has a 200k token context window. Even the longest current source
+  // (~40k chars ≈ 10k tokens) is well within limits — no truncation needed.
+  // Only truncate if a document is unusually long (>100k chars).
+  const LIMIT = 100_000
+  const truncated = rawContent.length > LIMIT ? rawContent.slice(0, 90_000) : rawContent
 
   const systemPrompt = `You are extracting structured facts from a pet insurance policy document for a comparison database. Extract ONLY the facts requested in the schema below. Paraphrase exclusions and definitions in your own words — do not copy verbatim sentences from the source document, as this is copyrighted material. If a fact isn't clearly stated in the document, use null and lower the extraction_confidence. Respond with ONLY valid JSON matching this exact schema, no markdown formatting, no preamble:
 
@@ -99,7 +100,7 @@ ${EXTRACTION_SCHEMA_DESCRIPTION}`
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 2048,
+    max_tokens: 4096,
     system: systemPrompt,
     messages: [{ role: 'user', content: truncated }],
   })
