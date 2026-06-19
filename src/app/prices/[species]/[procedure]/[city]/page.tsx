@@ -121,7 +121,7 @@ export default async function PricePage({ params }: { params: PageParams }) {
 
             {/* Price stat boxes */}
             <div className="mx-auto mb-10 grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-3">
-              {/* Typical Low — p50 */}
+              {/* Median Price — p50 */}
               <div
                 className="rounded-xl border border-stone-200 bg-white p-5 text-center shadow-sm"
                 style={{ borderRadius: '12px' }}
@@ -130,7 +130,7 @@ export default async function PricePage({ params }: { params: PageParams }) {
                   className="text-[11px] font-semibold uppercase tracking-widest"
                   style={{ color: '#A8A29E' }}
                 >
-                  50th percentile
+                  Half of vets charge less
                 </p>
                 <p
                   className="mt-2 font-bold"
@@ -138,7 +138,7 @@ export default async function PricePage({ params }: { params: PageParams }) {
                 >
                   ${benchmarks.p50.toLocaleString()}
                 </p>
-                <p className="mt-1 text-sm font-medium text-stone-500">Typical Low</p>
+                <p className="mt-1 text-sm font-medium text-stone-500">Median Price</p>
               </div>
 
               {/* Above Average — p70 (amber highlight) */}
@@ -149,7 +149,7 @@ export default async function PricePage({ params }: { params: PageParams }) {
                 <p
                   className="text-[11px] font-semibold uppercase tracking-widest text-amber-600"
                 >
-                  70th percentile
+                  More than 70% of vets charge less
                 </p>
                 <p
                   className="mt-2 font-bold text-amber-700"
@@ -169,7 +169,7 @@ export default async function PricePage({ params }: { params: PageParams }) {
                   className="text-[11px] font-semibold uppercase tracking-widest"
                   style={{ color: '#A8A29E' }}
                 >
-                  90th percentile
+                  Only 10% of vets charge more
                 </p>
                 <p
                   className="mt-2 font-bold"
