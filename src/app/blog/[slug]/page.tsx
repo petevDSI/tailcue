@@ -4,6 +4,7 @@ import { PawPrint } from 'lucide-react'
 import { MDXRemote } from 'next-mdx-remote/rsc'
 import { getAllPosts, getPostBySlug } from '@/lib/blog'
 import Footer from '@/components/footer'
+import BlogVoteWidget from './BlogVoteWidget'
 
 export async function generateStaticParams() {
   return getAllPosts().map((post) => ({ slug: post.slug }))
@@ -72,6 +73,9 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         <div className="prose prose-stone prose-headings:font-bold prose-a:text-amber-600 max-w-none">
           <MDXRemote source={post.content} />
         </div>
+
+        {/* Vote widget + view tracker */}
+        <BlogVoteWidget slug={params.slug} />
 
         {/* CTA */}
         <div className="mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">

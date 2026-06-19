@@ -1,23 +1,35 @@
 import Link from 'next/link'
 import { PawPrint } from 'lucide-react'
+import { createClient } from '@supabase/supabase-js'
 import { getAllPosts } from '@/lib/blog'
 import Footer from '@/components/footer'
+import BlogList from './BlogList'
 
 export const metadata = {
   title: 'Blog — Tailcue',
   description: 'Helping pet owners make smarter decisions about veterinary care and costs.',
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-}
-
-export default function BlogIndexPage() {
+export default async function BlogIndexPage() {
   const posts = getAllPosts()
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const { data: statsRows } = await supabase
+    .from('blog_post_stats')
+    .select('slug, upvotes, downvotes, view_count')
+
+  const statsMap: Record<string, { upvotes: number; downvotes: number; view_count: number }> = {}
+  for (const row of statsRows ?? []) {
+    statsMap[row.slug] = {
+      upvotes: row.upvotes,
+      downvotes: row.downvotes,
+      view_count: row.view_count,
+    }
+  }
 
   return (
     <div className="min-h-screen bg-stone-50" style={{ fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif' }}>
@@ -50,32 +62,9 @@ export default function BlogIndexPage() {
         </div>
       </section>
 
-      {/* Post list */}
+      {/* Post list with sort control */}
       <main className="mx-auto max-w-3xl px-6 py-12">
-        {posts.length === 0 ? (
-          <p className="text-center text-stone-400">No posts yet — check back soon.</p>
-        ) : (
-          <div className="space-y-5">
-            {posts.map((post) => (
-              <Link
-                key={post.slug}
-                href={`/blog/${post.slug}`}
-                className="block rounded-2xl border border-stone-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
-              >
-                <time className="mb-2 block text-xs font-medium text-stone-400">
-                  {formatDate(post.date)}
-                </time>
-                <h2 className="mb-1.5 text-[17px] font-bold leading-snug text-stone-900">
-                  {post.title}
-                </h2>
-                <p className="text-sm leading-relaxed text-stone-500">{post.description}</p>
-                <span className="mt-4 inline-block text-sm font-semibold text-amber-600">
-                  Read more →
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
+        <BlogList posts={posts} statsMap={statsMap} />
       </main>
 
       <Footer />

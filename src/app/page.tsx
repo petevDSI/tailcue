@@ -40,12 +40,12 @@ const TOOLS = [
     description: 'Track your pet\'s chronic condition',
     detail:
       'Log symptoms, medications, and vet visits in one place — so every appointment starts with the full picture.',
-    cta: null,
-    href: null,
-    active: false,
-    accent: 'border-stone-200',
-    iconBg: 'bg-stone-100',
-    iconText: 'text-stone-400',
+    cta: 'Open Care Log',
+    href: '/care',
+    active: true,
+    accent: 'border-green-400',
+    iconBg: 'bg-green-50',
+    iconText: 'text-green-600',
   },
 ] as const
 
