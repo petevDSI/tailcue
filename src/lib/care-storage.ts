@@ -1,21 +1,36 @@
 export interface PetProfile {
   name: string
-  species: 'cat'
-  condition: 'feline_diabetes'
+  species: 'cat' | 'dog'
+  condition: 'feline_diabetes' | 'chf'
   createdAt: string
+  // feline_diabetes fields
   insulinConcentration?: 'U-40' | 'U-100'
   vialSizeML?: number
+  // chf fields
+  chfBaselineSRR?: number
 }
 
-export interface CareLogEntry {
+interface BaseLogEntry {
   id: string
   date: string       // YYYY-MM-DD
   timestamp: string  // full ISO
+}
+
+export interface DiabetesLogEntry extends BaseLogEntry {
+  condition: 'feline_diabetes'
   bloodGlucose: number
   insulinUnits: number
   insulinType: string
   appetite: 'poor' | 'normal' | 'ravenous'
 }
+
+export interface CHFLogEntry extends BaseLogEntry {
+  condition: 'chf'
+  srrBpm: number
+  lethargyLevel: 1 | 2 | 3 | 4 | 5
+}
+
+export type CareLogEntry = DiabetesLogEntry | CHFLogEntry
 
 export interface CurrentVial {
   startedAt: string               // ISO timestamp
@@ -34,15 +49,26 @@ const STORAGE_KEY = 'tailcue_care_data'
 
 const DEFAULT: CareData = { profile: null, logs: [], currentVial: null }
 
+// Legacy logs (saved before CHF was added) lack the condition discriminant — inject it.
+function hydrateLogs(rawLogs: unknown[]): CareLogEntry[] {
+  return rawLogs.map((entry) => {
+    const e = entry as Record<string, unknown>
+    if (!e.condition) {
+      return { ...e, condition: 'feline_diabetes' } as DiabetesLogEntry
+    }
+    return e as unknown as CareLogEntry
+  })
+}
+
 function read(): CareData {
   if (typeof window === 'undefined') return DEFAULT
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return DEFAULT
-    const parsed = JSON.parse(raw) as CareData
+    const parsed = JSON.parse(raw)
     return {
       profile: parsed.profile ?? null,
-      logs: Array.isArray(parsed.logs) ? parsed.logs : [],
+      logs: Array.isArray(parsed.logs) ? hydrateLogs(parsed.logs) : [],
       currentVial: parsed.currentVial ?? null,
     }
   } catch {
@@ -110,4 +136,10 @@ export function updateInsulinDefaults(concentration: 'U-40' | 'U-100', vialSizeM
     ...data,
     profile: { ...data.profile, insulinConcentration: concentration, vialSizeML },
   })
+}
+
+export function updateCHFBaseline(baselineSRR: number): void {
+  const data = read()
+  if (!data.profile) return
+  write({ ...data, profile: { ...data.profile, chfBaselineSRR: baselineSRR } })
 }

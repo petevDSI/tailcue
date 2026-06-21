@@ -1,4 +1,4 @@
-import type { CareLogEntry, CurrentVial } from './care-storage'
+import type { DiabetesLogEntry, CurrentVial } from './care-storage'
 
 export type SupplyStatus = 'no_vial_started' | 'insufficient_data' | 'ok' | 'low' | 'unknown'
 
@@ -10,7 +10,7 @@ export interface SupplyEstimate {
 }
 
 export function estimateInsulinSupply(
-  logs: CareLogEntry[],
+  logs: DiabetesLogEntry[],
   currentVial: CurrentVial | null
 ): SupplyEstimate {
   if (!currentVial) {
