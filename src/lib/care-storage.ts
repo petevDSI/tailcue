@@ -1,4 +1,5 @@
 export interface PetProfile {
+  id: string
   name: string
   species: 'cat' | 'dog'
   condition: 'feline_diabetes' | 'chf'
@@ -39,107 +40,116 @@ export interface CurrentVial {
   unitsAlreadyUsedAtStart: number
 }
 
-export interface CareData {
-  profile: PetProfile | null
+export interface PetRecord {
+  profile: PetProfile
   logs: CareLogEntry[]
   currentVial: CurrentVial | null
 }
 
-const STORAGE_KEY = 'tailcue_care_data'
-
-const DEFAULT: CareData = { profile: null, logs: [], currentVial: null }
-
-// Legacy logs (saved before CHF was added) lack the condition discriminant — inject it.
-function hydrateLogs(rawLogs: unknown[]): CareLogEntry[] {
-  return rawLogs.map((entry) => {
-    const e = entry as Record<string, unknown>
-    if (!e.condition) {
-      return { ...e, condition: 'feline_diabetes' } as DiabetesLogEntry
-    }
-    return e as unknown as CareLogEntry
-  })
+interface PetStore {
+  pets: Record<string, PetRecord>
 }
 
-function read(): CareData {
-  if (typeof window === 'undefined') return DEFAULT
+const STORAGE_KEY = 'tailcue_care_data_v2'
+
+const DEFAULT_STORE: PetStore = { pets: {} }
+
+function read(): PetStore {
+  if (typeof window === 'undefined') return DEFAULT_STORE
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return DEFAULT
+    if (!raw) return DEFAULT_STORE
     const parsed = JSON.parse(raw)
-    return {
-      profile: parsed.profile ?? null,
-      logs: Array.isArray(parsed.logs) ? hydrateLogs(parsed.logs) : [],
-      currentVial: parsed.currentVial ?? null,
-    }
+    if (!parsed.pets || typeof parsed.pets !== 'object') return DEFAULT_STORE
+    return parsed as PetStore
   } catch {
-    return DEFAULT
+    return DEFAULT_STORE
   }
 }
 
-function write(data: CareData): void {
+function write(store: PetStore): void {
   if (typeof window === 'undefined') return
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(store))
   } catch {
     // storage quota exceeded — fail silently
   }
 }
 
-export function getCareData(): CareData {
-  return read()
+export function getAllPets(): PetRecord[] {
+  return Object.values(read().pets)
 }
 
-export function saveProfile(profile: PetProfile): void {
-  const data = read()
-  write({ ...data, profile })
+export function getPet(petId: string): PetRecord | null {
+  return read().pets[petId] ?? null
 }
 
-export function addLogEntry(entry: CareLogEntry): void {
-  const data = read()
-  write({ ...data, logs: [entry, ...data.logs] })
+export function createPet(profile: Omit<PetProfile, 'id'>): PetRecord {
+  const id = crypto.randomUUID()
+  const fullProfile: PetProfile = { id, ...profile }
+  const record: PetRecord = { profile: fullProfile, logs: [], currentVial: null }
+  const store = read()
+  store.pets[id] = record
+  write(store)
+  return record
 }
 
-export function deleteLogEntry(id: string): void {
-  const data = read()
-  write({ ...data, logs: data.logs.filter((l) => l.id !== id) })
+export function saveProfile(petId: string, profile: PetProfile): void {
+  const store = read()
+  if (!store.pets[petId]) return
+  store.pets[petId] = { ...store.pets[petId], profile }
+  write(store)
 }
 
-export function getLogsForLastNDays(n: number): CareLogEntry[] {
-  const data = read()
-  const cutoff = new Date()
-  cutoff.setDate(cutoff.getDate() - n)
-  cutoff.setHours(0, 0, 0, 0)
-  return data.logs.filter((l) => new Date(l.timestamp) >= cutoff)
+export function addLogEntry(petId: string, entry: CareLogEntry): void {
+  const store = read()
+  if (!store.pets[petId]) return
+  store.pets[petId] = {
+    ...store.pets[petId],
+    logs: [entry, ...store.pets[petId].logs],
+  }
+  write(store)
 }
 
-export function startNewVial(
-  concentration: 'U-40' | 'U-100',
-  vialSizeML: number,
-  unitsAlreadyUsedAtStart: number = 0
-): void {
-  const data = read()
-  write({
-    ...data,
-    currentVial: {
-      startedAt: new Date().toISOString(),
-      concentration,
-      vialSizeML,
-      unitsAlreadyUsedAtStart,
-    },
-  })
+export function deleteLogEntry(petId: string, logId: string): void {
+  const store = read()
+  if (!store.pets[petId]) return
+  store.pets[petId] = {
+    ...store.pets[petId],
+    logs: store.pets[petId].logs.filter((l) => l.id !== logId),
+  }
+  write(store)
 }
 
-export function updateInsulinDefaults(concentration: 'U-40' | 'U-100', vialSizeML: number): void {
-  const data = read()
-  if (!data.profile) return
-  write({
-    ...data,
-    profile: { ...data.profile, insulinConcentration: concentration, vialSizeML },
-  })
+export function startNewVial(petId: string, vial: CurrentVial): void {
+  const store = read()
+  if (!store.pets[petId]) return
+  store.pets[petId] = { ...store.pets[petId], currentVial: vial }
+  write(store)
 }
 
-export function updateCHFBaseline(baselineSRR: number): void {
-  const data = read()
-  if (!data.profile) return
-  write({ ...data, profile: { ...data.profile, chfBaselineSRR: baselineSRR } })
+export function updateInsulinDefaults(petId: string, concentration: 'U-40' | 'U-100', vialSizeML: number): void {
+  const store = read()
+  if (!store.pets[petId]) return
+  store.pets[petId] = {
+    ...store.pets[petId],
+    profile: { ...store.pets[petId].profile, insulinConcentration: concentration, vialSizeML },
+  }
+  write(store)
+}
+
+export function updateCHFBaseline(petId: string, baselineSRR: number): void {
+  const store = read()
+  if (!store.pets[petId]) return
+  store.pets[petId] = {
+    ...store.pets[petId],
+    profile: { ...store.pets[petId].profile, chfBaselineSRR: baselineSRR },
+  }
+  write(store)
+}
+
+export function deletePet(petId: string): void {
+  const store = read()
+  delete store.pets[petId]
+  write(store)
 }

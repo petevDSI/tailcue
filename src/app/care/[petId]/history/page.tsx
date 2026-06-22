@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Cat, Dog, Trash2 } from 'lucide-react'
 import {
@@ -8,7 +9,7 @@ import {
   Tooltip, ReferenceLine, ResponsiveContainer,
 } from 'recharts'
 import {
-  getCareData, deleteLogEntry,
+  getPet, deleteLogEntry,
   type CareLogEntry, type DiabetesLogEntry, type CHFLogEntry, type PetProfile,
 } from '@/lib/care-storage'
 import { evaluateGlucoseRisk, evaluateCHFRisk } from '@/lib/care-risk-engine'
@@ -360,7 +361,11 @@ function LethargyStrip({ logs }: { logs: CHFLogEntry[] }) {
 
 // ── Page ──────────────────────────────────────────────────────────────────
 
-export default function HistoryPage() {
+export default function PetHistoryPage() {
+  const params = useParams()
+  const router = useRouter()
+  const petId = params.petId as string
+
   const [mounted, setMounted] = useState(false)
   const [profile, setProfile] = useState<PetProfile | null>(null)
   const [logs, setLogs] = useState<CareLogEntry[]>([])
@@ -369,26 +374,21 @@ export default function HistoryPage() {
 
   useEffect(() => {
     setMounted(true)
-    const data = getCareData()
-    setProfile(data.profile)
-    setLogs(data.logs)
-  }, [])
+    const record = getPet(petId)
+    if (!record) {
+      router.replace('/care')
+      return
+    }
+    setProfile(record.profile)
+    setLogs(record.logs)
+  }, [petId, router])
 
   if (!mounted) return null
 
-  if (!profile) {
-    return (
-      <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center p-6">
-        <p className="text-stone-400 text-sm mb-4">No care profile found.</p>
-        <Link href="/care" className="text-amber-600 hover:text-amber-700 text-sm font-medium">
-          Set up your care tracker →
-        </Link>
-      </div>
-    )
-  }
+  if (!profile) return null
 
   function handleDelete(id: string) {
-    deleteLogEntry(id)
+    deleteLogEntry(petId, id)
     setLogs((prev) => prev.filter((l) => l.id !== id))
     setPendingDeleteId(null)
   }
@@ -424,7 +424,7 @@ export default function HistoryPage() {
     <div className="min-h-screen bg-stone-50 flex flex-col">
       <header className="bg-white border-b border-stone-200 px-4 py-3 flex items-center gap-3">
         <Link
-          href="/care"
+          href={`/care/${petId}`}
           className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors shrink-0"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
@@ -452,7 +452,7 @@ export default function HistoryPage() {
         {logs.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-stone-400 text-sm mb-3">No readings logged yet.</p>
-            <Link href="/care" className="text-amber-600 hover:text-amber-700 text-sm font-medium">
+            <Link href={`/care/${petId}`} className="text-amber-600 hover:text-amber-700 text-sm font-medium">
               Log your first reading →
             </Link>
           </div>
