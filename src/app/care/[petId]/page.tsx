@@ -15,13 +15,24 @@ import {
   getPet, getAllPets, addLogEntry, deleteLogEntry,
   startNewVial, updateInsulinDefaults, updateCHFBaseline,
   type CareLogEntry, type DiabetesLogEntry, type CHFLogEntry,
+  type CKDLogEntry, type CushingsLogEntry, type OALogEntry, type EpilepsyLogEntry,
+  type HyperthyroidismLogEntry, type IBDLogEntry, type CDSLogEntry, type DMLogEntry,
   type PetProfile, type CurrentVial, type PetRecord,
 } from '@/lib/care-storage'
 import {
   evaluateGlucoseRisk, GLUCOSE_DISCLAIMER,
   evaluateCHFRisk, CHF_DISCLAIMER,
+  evaluateCKDRisk, CKD_DISCLAIMER,
+  evaluateCushingsRisk, CUSHINGS_DISCLAIMER,
+  evaluateOARisk, OA_DISCLAIMER,
+  evaluateEpilepsyRisk, EPILEPSY_DISCLAIMER,
+  evaluateHyperthyroidismRisk, HYPERTHYROIDISM_DISCLAIMER,
+  evaluateIBDRisk, IBD_DISCLAIMER,
+  evaluateCDSRisk, computeDISHAAScore, CDS_DISCLAIMER,
+  evaluateDMRisk, DM_DISCLAIMER,
 } from '@/lib/care-risk-engine'
 import { estimateInsulinSupply } from '@/lib/care-supply-estimator'
+import { CareExportButton } from '@/components/care/CareExportButton'
 import Footer from '@/components/footer'
 
 const CHEWY_RESTOCK_URL = process.env.NEXT_PUBLIC_CHEWY_AFFILIATE_URL ?? 'https://www.chewy.com/pharmacy'
@@ -786,6 +797,1214 @@ function CHFLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
   )
 }
 
+// ── Shared 1–5 Score Selector ─────────────────────────────────────────────
+
+function ScoreSelector({
+  value,
+  onChange,
+  lowLabel,
+  highLabel,
+}: {
+  value: number
+  onChange: (v: number) => void
+  lowLabel: string
+  highLabel: string
+}) {
+  return (
+    <div>
+      <div className="flex rounded-lg overflow-hidden border border-stone-300">
+        {([1, 2, 3, 4, 5] as const).map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => onChange(n)}
+            className={`flex-1 py-2 text-xs font-medium transition-colors ${
+              value === n
+                ? 'bg-amber-500 text-white'
+                : 'bg-white text-stone-600 hover:bg-stone-50'
+            }`}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+      <div className="flex justify-between mt-1">
+        <p className="text-xs text-stone-400">{lowLabel}</p>
+        <p className="text-xs text-stone-400">{highLabel}</p>
+      </div>
+    </div>
+  )
+}
+
+// ── CKD Log Form ──────────────────────────────────────────────────────────
+
+function CKDLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
+  const [vomitingCount, setVomitingCount] = useState(0)
+  const [skinTurgor, setSkinTurgor] = useState<'normal' | 'sticky' | 'tented'>('normal')
+  const [appetite, setAppetite] = useState<'normal' | 'reduced' | 'refused'>('normal')
+  const [lethargyScore, setLethargyScore] = useState(1)
+  const [onSubQ, setOnSubQ] = useState(false)
+  const [subqFluidMlStr, setSubqFluidMlStr] = useState('100')
+  const [saving, setSaving] = useState(false)
+  const [backdateOpen, setBackdateOpen] = useState(false)
+  const [selectedLogDate, setSelectedLogDate] = useState('')
+
+  const handleSave = useCallback(() => {
+    setSaving(true)
+    const entryDate = selectedLogDate || today()
+    const entryTimestamp = selectedLogDate
+      ? new Date(`${selectedLogDate}T12:00:00`).toISOString()
+      : new Date().toISOString()
+    const entry: CKDLogEntry = {
+      id: crypto.randomUUID(),
+      date: entryDate,
+      timestamp: entryTimestamp,
+      condition: 'chronic_kidney_disease',
+      subqFluidMl: onSubQ ? (parseFloat(subqFluidMlStr) || 0) : null,
+      vomitingCount,
+      skinTurgor,
+      appetite,
+      lethargyScore,
+    }
+    onSave(entry)
+    setVomitingCount(0)
+    setSkinTurgor('normal')
+    setAppetite('normal')
+    setLethargyScore(1)
+    setSelectedLogDate('')
+    setBackdateOpen(false)
+    setSaving(false)
+  }, [vomitingCount, skinTurgor, appetite, lethargyScore, onSubQ, subqFluidMlStr, selectedLogDate, onSave])
+
+  return (
+    <div className="bg-white rounded-xl border border-stone-200 p-4">
+      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-4">Log Today&rsquo;s Check-In</p>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Vomiting Episodes (past 24h)</label>
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={() => setVomitingCount(Math.max(0, vomitingCount - 1))}
+              disabled={vomitingCount <= 0}
+              className="w-9 h-9 flex items-center justify-center rounded-lg border border-stone-300
+                text-stone-600 hover:bg-stone-50 disabled:opacity-30 transition-colors">
+              <Minus className="w-4 h-4" />
+            </button>
+            <span className="w-14 text-center text-stone-900 font-semibold text-lg tabular-nums">{vomitingCount}</span>
+            <button type="button" onClick={() => setVomitingCount(Math.min(10, vomitingCount + 1))}
+              className="w-9 h-9 flex items-center justify-center rounded-lg border border-stone-300
+                text-stone-600 hover:bg-stone-50 transition-colors">
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Skin Turgor (dehydration check)</label>
+          <p className="text-xs text-stone-400 mb-2">Gently pinch the skin at the scruff — how quickly does it snap back?</p>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'normal' as const, label: 'Snaps back' },
+              { value: 'sticky' as const, label: 'Slight delay' },
+              { value: 'tented' as const, label: 'Stays lifted' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setSkinTurgor(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  skinTurgor === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Appetite</label>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'normal' as const, label: 'Normal' },
+              { value: 'reduced' as const, label: 'Reduced' },
+              { value: 'refused' as const, label: 'Refused' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setAppetite(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  appetite === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Energy Level (1 = normal, 5 = unresponsive)</label>
+          <ScoreSelector value={lethargyScore} onChange={setLethargyScore} lowLabel="Normal energy" highLabel="Unresponsive" />
+        </div>
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-stone-700 cursor-pointer">
+            <input type="checkbox" checked={onSubQ} onChange={(e) => setOnSubQ(e.target.checked)}
+              className="rounded border-stone-300 text-amber-500 focus:ring-amber-400" />
+            Administered SubQ fluids today
+          </label>
+          {onSubQ && (
+            <div className="mt-2">
+              <label className="block text-xs font-medium text-stone-600 mb-1.5">Amount (mL)</label>
+              <div className="flex items-center gap-2">
+                {[50, 100, 150, 200].map((ml) => (
+                  <button key={ml} type="button" onClick={() => setSubqFluidMlStr(String(ml))}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                      subqFluidMlStr === String(ml) ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-stone-600 border-stone-300 hover:bg-stone-50'
+                    }`}>
+                    {ml}
+                  </button>
+                ))}
+                <input type="number" inputMode="numeric" value={subqFluidMlStr}
+                  onChange={(e) => setSubqFluidMlStr(e.target.value)} placeholder="mL"
+                  className="w-20 rounded-lg border border-stone-300 px-2 py-1.5 text-stone-900 text-xs
+                    focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent" />
+              </div>
+            </div>
+          )}
+        </div>
+        <BackdateDisclosure
+          open={backdateOpen}
+          onToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
+          value={selectedLogDate}
+          onChange={setSelectedLogDate}
+        />
+        <button type="button" disabled={saving} onClick={handleSave}
+          className="w-full rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
+            disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors">
+          Save Check-In
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Cushing's Log Form ────────────────────────────────────────────────────
+
+function CushingsLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
+  const [waterIntake, setWaterIntake] = useState<'normal' | 'elevated' | 'excessive'>('normal')
+  const [indoorAccidents, setIndoorAccidents] = useState(false)
+  const [lethargyScore, setLethargyScore] = useState(1)
+  const [appetite, setAppetite] = useState<'normal' | 'reduced' | 'refused'>('normal')
+  const [vomitingOrDiarrhea, setVomitingOrDiarrhea] = useState(false)
+  const [medicationGiven, setMedicationGiven] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [backdateOpen, setBackdateOpen] = useState(false)
+  const [selectedLogDate, setSelectedLogDate] = useState('')
+
+  const handleSave = useCallback(() => {
+    setSaving(true)
+    const entryDate = selectedLogDate || today()
+    const entryTimestamp = selectedLogDate
+      ? new Date(`${selectedLogDate}T12:00:00`).toISOString()
+      : new Date().toISOString()
+    const entry: CushingsLogEntry = {
+      id: crypto.randomUUID(),
+      date: entryDate,
+      timestamp: entryTimestamp,
+      condition: 'cushings_disease',
+      waterIntake,
+      indoorAccidents,
+      lethargyScore,
+      appetite,
+      vomitingOrDiarrhea,
+      medicationGiven,
+    }
+    onSave(entry)
+    setWaterIntake('normal')
+    setIndoorAccidents(false)
+    setLethargyScore(1)
+    setAppetite('normal')
+    setVomitingOrDiarrhea(false)
+    setMedicationGiven(true)
+    setSelectedLogDate('')
+    setBackdateOpen(false)
+    setSaving(false)
+  }, [waterIntake, indoorAccidents, lethargyScore, appetite, vomitingOrDiarrhea, medicationGiven, selectedLogDate, onSave])
+
+  return (
+    <div className="bg-white rounded-xl border border-stone-200 p-4">
+      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-4">Log Today&rsquo;s Check-In</p>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Water Intake</label>
+          <p className="text-xs text-stone-400 mb-2">Compared to this dog&rsquo;s pre-treatment baseline.</p>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'normal' as const, label: 'Normal' },
+              { value: 'elevated' as const, label: 'Elevated' },
+              { value: 'excessive' as const, label: 'Excessive' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setWaterIntake(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  waterIntake === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Energy Level (1 = normal, 5 = unresponsive)</label>
+          <ScoreSelector value={lethargyScore} onChange={setLethargyScore} lowLabel="Normal energy" highLabel="Unresponsive" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Appetite</label>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'normal' as const, label: 'Normal' },
+              { value: 'reduced' as const, label: 'Reduced' },
+              { value: 'refused' as const, label: 'Refused' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setAppetite(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  appetite === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-sm font-medium text-stone-700 cursor-pointer">
+            <input type="checkbox" checked={vomitingOrDiarrhea} onChange={(e) => setVomitingOrDiarrhea(e.target.checked)}
+              className="rounded border-stone-300 text-amber-500 focus:ring-amber-400" />
+            Vomiting or diarrhea today
+          </label>
+          <label className="flex items-center gap-2 text-sm font-medium text-stone-700 cursor-pointer">
+            <input type="checkbox" checked={indoorAccidents} onChange={(e) => setIndoorAccidents(e.target.checked)}
+              className="rounded border-stone-300 text-amber-500 focus:ring-amber-400" />
+            Urination accidents indoors today
+          </label>
+          <label className="flex items-center gap-2 text-sm font-medium text-stone-700 cursor-pointer">
+            <input type="checkbox" checked={medicationGiven} onChange={(e) => setMedicationGiven(e.target.checked)}
+              className="rounded border-stone-300 text-amber-500 focus:ring-amber-400" />
+            Vetoryl / trilostane given today (with food)
+          </label>
+        </div>
+        <BackdateDisclosure
+          open={backdateOpen}
+          onToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
+          value={selectedLogDate}
+          onChange={setSelectedLogDate}
+        />
+        <button type="button" disabled={saving} onClick={handleSave}
+          className="w-full rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
+            disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors">
+          Save Check-In
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── OA Log Form ───────────────────────────────────────────────────────────
+
+function OALogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
+  const [easOfRising, setEasOfRising] = useState<'smooth' | 'hesitant' | 'refused'>('smooth')
+  const [stairsNegotiated, setStairsNegotiated] = useState<'yes' | 'assisted' | 'refused' | 'no_stairs'>('no_stairs')
+  const [jumpingAttempted, setJumpingAttempted] = useState<'yes' | 'hesitant' | 'no'>('yes')
+  const [painMedGiven, setPainMedGiven] = useState(false)
+  const [mobilityScore, setMobilityScore] = useState(1)
+  const [saving, setSaving] = useState(false)
+  const [backdateOpen, setBackdateOpen] = useState(false)
+  const [selectedLogDate, setSelectedLogDate] = useState('')
+
+  const handleSave = useCallback(() => {
+    setSaving(true)
+    const entryDate = selectedLogDate || today()
+    const entryTimestamp = selectedLogDate
+      ? new Date(`${selectedLogDate}T12:00:00`).toISOString()
+      : new Date().toISOString()
+    const entry: OALogEntry = {
+      id: crypto.randomUUID(),
+      date: entryDate,
+      timestamp: entryTimestamp,
+      condition: 'osteoarthritis',
+      easOfRising,
+      stairsNegotiated,
+      jumpingAttempted,
+      painMedGiven,
+      overallMobilityScore: mobilityScore,
+    }
+    onSave(entry)
+    setEasOfRising('smooth')
+    setStairsNegotiated('no_stairs')
+    setJumpingAttempted('yes')
+    setPainMedGiven(false)
+    setMobilityScore(1)
+    setSelectedLogDate('')
+    setBackdateOpen(false)
+    setSaving(false)
+  }, [easOfRising, stairsNegotiated, jumpingAttempted, painMedGiven, mobilityScore, selectedLogDate, onSave])
+
+  return (
+    <div className="bg-white rounded-xl border border-stone-200 p-4">
+      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-4">Log Today&rsquo;s Check-In</p>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Ease of Rising</label>
+          <p className="text-xs text-stone-400 mb-2">How did your pet get up from rest or sleep today?</p>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'smooth' as const, label: 'Smooth' },
+              { value: 'hesitant' as const, label: 'Hesitant' },
+              { value: 'refused' as const, label: 'Refused' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setEasOfRising(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  easOfRising === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Stairs</label>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'yes' as const, label: 'Managed' },
+              { value: 'assisted' as const, label: 'Assisted' },
+              { value: 'refused' as const, label: 'Refused' },
+              { value: 'no_stairs' as const, label: 'N/A' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setStairsNegotiated(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  stairsNegotiated === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Jumping / Climbing</label>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'yes' as const, label: 'Yes' },
+              { value: 'hesitant' as const, label: 'Hesitant' },
+              { value: 'no' as const, label: 'No' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setJumpingAttempted(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  jumpingAttempted === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Overall Mobility Today <span className="text-stone-400 font-normal">(1 = best, 5 = worst)</span>
+          </label>
+          <ScoreSelector value={mobilityScore} onChange={setMobilityScore} lowLabel="Best they get" highLabel="Worst seen" />
+        </div>
+        <label className="flex items-center gap-2 text-sm font-medium text-stone-700 cursor-pointer">
+          <input type="checkbox" checked={painMedGiven} onChange={(e) => setPainMedGiven(e.target.checked)}
+            className="rounded border-stone-300 text-amber-500 focus:ring-amber-400" />
+          Pain medication / supplement given today
+        </label>
+        <BackdateDisclosure
+          open={backdateOpen}
+          onToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
+          value={selectedLogDate}
+          onChange={setSelectedLogDate}
+        />
+        <button type="button" disabled={saving} onClick={handleSave}
+          className="w-full rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
+            disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors">
+          Save Check-In
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Epilepsy Log Form ─────────────────────────────────────────────────────
+
+function EpilepsyLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
+  const nowStr = () => {
+    const now = new Date()
+    now.setSeconds(0, 0)
+    return now.toISOString().slice(0, 16)
+  }
+  const [seizedAt, setSeizedAt] = useState(nowStr)
+  const [durationStr, setDurationStr] = useState('')
+  const [severity, setSeverity] = useState<'mild' | 'moderate' | 'severe'>('moderate')
+  const [postIctalStr, setPostIctalStr] = useState('')
+  const [notes, setNotes] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const handleSave = useCallback(() => {
+    const dur = parseFloat(durationStr)
+    const postIctal = parseFloat(postIctalStr)
+    if (isNaN(dur) || dur <= 0) return
+    setSaving(true)
+    const ts = new Date(seizedAt).toISOString()
+    const entry: EpilepsyLogEntry = {
+      id: crypto.randomUUID(),
+      date: ts.slice(0, 10),
+      timestamp: ts,
+      condition: 'epilepsy',
+      durationMinutes: dur,
+      severity,
+      postIctalMinutes: isNaN(postIctal) ? 0 : postIctal,
+      notes: notes.trim() || undefined,
+    }
+    onSave(entry)
+    setSeizedAt(nowStr())
+    setDurationStr('')
+    setSeverity('moderate')
+    setPostIctalStr('')
+    setNotes('')
+    setSaving(false)
+  }, [seizedAt, durationStr, severity, postIctalStr, notes, onSave])
+
+  return (
+    <div className="bg-white rounded-xl border border-stone-200 p-4">
+      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-4">Log This Seizure</p>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">When did it happen?</label>
+          <input type="datetime-local" value={seizedAt}
+            max={new Date().toISOString().slice(0, 16)}
+            onChange={(e) => setSeizedAt(e.target.value)}
+            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
+              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Duration (minutes)</label>
+          <p className="text-xs text-stone-400 mb-2">Estimate is fine — &ldquo;about 2 minutes&rdquo; helps your vet.</p>
+          <input type="number" inputMode="decimal" value={durationStr}
+            onChange={(e) => setDurationStr(e.target.value)}
+            placeholder="e.g. 2" min="0.1" step="0.5"
+            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
+              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Severity</label>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'mild' as const, label: 'Mild' },
+              { value: 'moderate' as const, label: 'Moderate' },
+              { value: 'severe' as const, label: 'Severe' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setSeverity(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  severity === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-stone-400 mt-1.5">
+            Mild = facial twitching only. Moderate = partial body. Severe = full grand mal.
+          </p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Recovery time <span className="text-stone-400 font-normal">(minutes)</span>
+          </label>
+          <p className="text-xs text-stone-400 mb-2">When did they seem like themselves again?</p>
+          <input type="number" inputMode="numeric" value={postIctalStr}
+            onChange={(e) => setPostIctalStr(e.target.value)}
+            placeholder="e.g. 15" min="0"
+            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
+              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Notes <span className="text-stone-400 font-normal">(optional)</span>
+          </label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+            placeholder="Any trigger you noticed? Unusual behavior before?"
+            rows={2}
+            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
+              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none" />
+        </div>
+        <button type="button"
+          disabled={!durationStr.trim() || parseFloat(durationStr) <= 0 || saving}
+          onClick={handleSave}
+          className="w-full rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-stone-200
+            disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors">
+          Save Seizure Event
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Hyperthyroidism Log Form ──────────────────────────────────────────────
+
+function HyperthyroidismLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
+  const [medicationGiven, setMedicationGiven] = useState(true)
+  const [appetite, setAppetite] = useState<'normal' | 'reduced' | 'ravenous'>('normal')
+  const [weightChange, setWeightChange] = useState<'stable' | 'losing'>('stable')
+  const [vomitingStr, setVomitingStr] = useState('0')
+  const [lethargyScore, setLethargyScore] = useState(1)
+  const [facialScratching, setFacialScratching] = useState(false)
+  const [yellowSkinOrGums, setYellowSkinOrGums] = useState(false)
+  const [bleedingOrBruising, setBleedingOrBruising] = useState(false)
+  const [notes, setNotes] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [backdateOpen, setBackdateOpen] = useState(false)
+  const [selectedLogDate, setSelectedLogDate] = useState('')
+
+  const handleSave = useCallback(() => {
+    const vomitCount = parseInt(vomitingStr, 10)
+    if (isNaN(vomitCount) || vomitCount < 0) return
+    setSaving(true)
+    const entryDate = selectedLogDate || today()
+    const entryTimestamp = selectedLogDate
+      ? new Date(`${selectedLogDate}T12:00:00`).toISOString()
+      : new Date().toISOString()
+    const entry: HyperthyroidismLogEntry = {
+      id: crypto.randomUUID(),
+      date: entryDate,
+      timestamp: entryTimestamp,
+      condition: 'feline_hyperthyroidism',
+      medicationGiven,
+      appetite,
+      weightChange,
+      vomitingCount: vomitCount,
+      lethargyScore,
+      facialScratching,
+      yellowSkinOrGums,
+      bleedingOrBruising,
+      notes: notes.trim() || undefined,
+    }
+    onSave(entry)
+    setMedicationGiven(true)
+    setAppetite('normal')
+    setWeightChange('stable')
+    setVomitingStr('0')
+    setLethargyScore(1)
+    setFacialScratching(false)
+    setYellowSkinOrGums(false)
+    setBleedingOrBruising(false)
+    setNotes('')
+    setSelectedLogDate('')
+    setBackdateOpen(false)
+    setSaving(false)
+  }, [medicationGiven, appetite, weightChange, vomitingStr, lethargyScore, facialScratching, yellowSkinOrGums, bleedingOrBruising, notes, selectedLogDate, onSave])
+
+  return (
+    <div className="bg-white rounded-xl border border-stone-200 p-4">
+      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-4">Log Today&rsquo;s Check-In</p>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Appetite</label>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'normal' as const, label: 'Normal' },
+              { value: 'reduced' as const, label: 'Reduced' },
+              { value: 'ravenous' as const, label: 'Ravenous' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setAppetite(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  appetite === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Weight</label>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'stable' as const, label: 'Stable' },
+              { value: 'losing' as const, label: 'Losing' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setWeightChange(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  weightChange === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Vomiting episodes today</label>
+          <input type="number" inputMode="numeric" value={vomitingStr}
+            onChange={(e) => setVomitingStr(e.target.value)}
+            placeholder="0" min="0" max="20"
+            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
+              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Energy Level (1 = normal, 5 = unresponsive)</label>
+          <ScoreSelector value={lethargyScore} onChange={setLethargyScore} lowLabel="Normal energy" highLabel="Unresponsive" />
+        </div>
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-sm font-medium text-stone-700 cursor-pointer">
+            <input type="checkbox" checked={medicationGiven} onChange={(e) => setMedicationGiven(e.target.checked)}
+              className="rounded border-stone-300 text-amber-500 focus:ring-amber-400" />
+            Methimazole / Felimazole given today
+          </label>
+          <label className="flex items-center gap-2 text-sm font-medium text-stone-700 cursor-pointer">
+            <input type="checkbox" checked={facialScratching} onChange={(e) => setFacialScratching(e.target.checked)}
+              className="rounded border-stone-300 text-amber-500 focus:ring-amber-400" />
+            Facial or neck scratching (possible drug reaction)
+          </label>
+          <label className="flex items-center gap-2 text-sm font-medium text-red-700 cursor-pointer">
+            <input type="checkbox" checked={yellowSkinOrGums} onChange={(e) => setYellowSkinOrGums(e.target.checked)}
+              className="rounded border-red-300 text-red-500 focus:ring-red-400" />
+            <span><span className="font-bold">Yellow skin or gums</span> — stop medication &amp; call vet now</span>
+          </label>
+          <label className="flex items-center gap-2 text-sm font-medium text-red-700 cursor-pointer">
+            <input type="checkbox" checked={bleedingOrBruising} onChange={(e) => setBleedingOrBruising(e.target.checked)}
+              className="rounded border-red-300 text-red-500 focus:ring-red-400" />
+            <span><span className="font-bold">Unexplained bleeding or bruising</span> — stop medication &amp; call vet now</span>
+          </label>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Notes <span className="text-stone-400 font-normal">(optional)</span>
+          </label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+            placeholder="Any changes in behaviour or appetite patterns?"
+            rows={2}
+            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
+              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none" />
+        </div>
+        <BackdateDisclosure
+          open={backdateOpen}
+          onToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
+          value={selectedLogDate}
+          onChange={setSelectedLogDate}
+        />
+        <button type="button" disabled={saving} onClick={handleSave}
+          className="w-full rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
+            disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors">
+          Save Check-In
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── IBD Log Form ──────────────────────────────────────────────────────────
+
+function IBDLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
+  const [stoolConsistency, setStoolConsistency] = useState<'normal' | 'soft' | 'watery' | 'bloody'>('normal')
+  const [vomitingStr, setVomitingStr] = useState('0')
+  const [appetite, setAppetite] = useState<'normal' | 'reduced' | 'refused'>('normal')
+  const [weightChange, setWeightChange] = useState<'stable' | 'losing'>('stable')
+  const [dietCompliance, setDietCompliance] = useState(true)
+  const [lethargyScore, setLethargyScore] = useState(1)
+  const [notes, setNotes] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [backdateOpen, setBackdateOpen] = useState(false)
+  const [selectedLogDate, setSelectedLogDate] = useState('')
+
+  const handleSave = useCallback(() => {
+    const vomitCount = parseInt(vomitingStr, 10)
+    if (isNaN(vomitCount) || vomitCount < 0) return
+    setSaving(true)
+    const entryDate = selectedLogDate || today()
+    const entryTimestamp = selectedLogDate
+      ? new Date(`${selectedLogDate}T12:00:00`).toISOString()
+      : new Date().toISOString()
+    const entry: IBDLogEntry = {
+      id: crypto.randomUUID(),
+      date: entryDate,
+      timestamp: entryTimestamp,
+      condition: 'ibd',
+      stoolConsistency,
+      vomitingCount: vomitCount,
+      appetite,
+      weightChange,
+      dietCompliance,
+      lethargyScore,
+      notes: notes.trim() || undefined,
+    }
+    onSave(entry)
+    setStoolConsistency('normal')
+    setVomitingStr('0')
+    setAppetite('normal')
+    setWeightChange('stable')
+    setDietCompliance(true)
+    setLethargyScore(1)
+    setNotes('')
+    setSelectedLogDate('')
+    setBackdateOpen(false)
+    setSaving(false)
+  }, [stoolConsistency, vomitingStr, appetite, weightChange, dietCompliance, lethargyScore, notes, selectedLogDate, onSave])
+
+  return (
+    <div className="bg-white rounded-xl border border-stone-200 p-4">
+      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-4">Log Today&rsquo;s Check-In</p>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Stool Consistency</label>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'normal' as const, label: 'Normal' },
+              { value: 'soft' as const, label: 'Soft' },
+              { value: 'watery' as const, label: 'Watery' },
+              { value: 'bloody' as const, label: 'Bloody' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setStoolConsistency(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  stoolConsistency === opt.value
+                    ? opt.value === 'bloody' ? 'bg-red-600 text-white' : 'bg-amber-500 text-white'
+                    : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Vomiting episodes today</label>
+          <input type="number" inputMode="numeric" value={vomitingStr}
+            onChange={(e) => setVomitingStr(e.target.value)}
+            placeholder="0" min="0" max="20"
+            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
+              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Appetite</label>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'normal' as const, label: 'Normal' },
+              { value: 'reduced' as const, label: 'Reduced' },
+              { value: 'refused' as const, label: 'Refused' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setAppetite(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  appetite === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Weight</label>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'stable' as const, label: 'Stable' },
+              { value: 'losing' as const, label: 'Losing' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setWeightChange(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  weightChange === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Energy Level (1 = normal, 5 = unresponsive)</label>
+          <ScoreSelector value={lethargyScore} onChange={setLethargyScore} lowLabel="Normal energy" highLabel="Unresponsive" />
+        </div>
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-sm font-medium text-stone-700 cursor-pointer">
+            <input type="checkbox" checked={dietCompliance} onChange={(e) => setDietCompliance(e.target.checked)}
+              className="rounded border-stone-300 text-amber-500 focus:ring-amber-400" />
+            Prescribed diet followed today (no dietary indiscretion)
+          </label>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Notes <span className="text-stone-400 font-normal">(optional)</span>
+          </label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+            placeholder="Any trigger foods, stress, or other observations?"
+            rows={2}
+            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
+              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none" />
+        </div>
+        <BackdateDisclosure
+          open={backdateOpen}
+          onToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
+          value={selectedLogDate}
+          onChange={setSelectedLogDate}
+        />
+        <button type="button" disabled={saving} onClick={handleSave}
+          className="w-full rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
+            disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors">
+          Save Check-In
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── CDS Weekly Check-In Form ──────────────────────────────────────────────
+
+function CDSLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
+  const [disorientation, setDisorientation] = useState<'none' | 'sometimes' | 'often'>('none')
+  const [socialInteraction, setSocialInteraction] = useState<'normal' | 'reduced' | 'changed'>('normal')
+  const [sleepChanges, setSleepChanges] = useState<'none' | 'mild' | 'significant'>('none')
+  const [houseTraining, setHouseTraining] = useState<'normal' | 'occasional_accidents' | 'frequent_accidents'>('normal')
+  const [activityChanges, setActivityChanges] = useState<'normal' | 'less_active' | 'aimless_pacing'>('normal')
+  const [anxiety, setAnxiety] = useState<'none' | 'mild' | 'significant'>('none')
+  const [notes, setNotes] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [backdateOpen, setBackdateOpen] = useState(false)
+  const [selectedLogDate, setSelectedLogDate] = useState('')
+
+  const previewEntry: CDSLogEntry = {
+    id: '', date: '', timestamp: '',
+    condition: 'cognitive_dysfunction',
+    disorientation, socialInteraction, sleepChanges, houseTraining, activityChanges, anxiety,
+  }
+  const liveScore = computeDISHAAScore(previewEntry)
+
+  const handleSave = useCallback(() => {
+    setSaving(true)
+    const entryDate = selectedLogDate || today()
+    const entryTimestamp = selectedLogDate
+      ? new Date(`${selectedLogDate}T12:00:00`).toISOString()
+      : new Date().toISOString()
+    const entry: CDSLogEntry = {
+      id: crypto.randomUUID(),
+      date: entryDate,
+      timestamp: entryTimestamp,
+      condition: 'cognitive_dysfunction',
+      disorientation,
+      socialInteraction,
+      sleepChanges,
+      houseTraining,
+      activityChanges,
+      anxiety,
+      notes: notes.trim() || undefined,
+    }
+    onSave(entry)
+    setDisorientation('none')
+    setSocialInteraction('normal')
+    setSleepChanges('none')
+    setHouseTraining('normal')
+    setActivityChanges('normal')
+    setAnxiety('none')
+    setNotes('')
+    setSelectedLogDate('')
+    setBackdateOpen(false)
+    setSaving(false)
+  }, [disorientation, socialInteraction, sleepChanges, houseTraining, activityChanges, anxiety, notes, selectedLogDate, onSave])
+
+  return (
+    <div className="bg-white rounded-xl border border-stone-200 p-4">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Weekly DISHAA Check-In</p>
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${
+          liveScore >= 8 ? 'bg-red-100 text-red-700 border-red-300'
+          : liveScore >= 4 ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
+          : 'bg-green-100 text-green-700 border-green-300'
+        }`}>
+          Score: {liveScore}/12
+        </span>
+      </div>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Disorientation</label>
+          <p className="text-xs text-stone-400 mb-2">Getting lost at home, staring into space, or seeming confused.</p>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'none' as const, label: 'None' },
+              { value: 'sometimes' as const, label: 'Sometimes' },
+              { value: 'often' as const, label: 'Often' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setDisorientation(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  disorientation === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Social Interaction</label>
+          <p className="text-xs text-stone-400 mb-2">Changes in how they interact with family members or other pets.</p>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'normal' as const, label: 'Normal' },
+              { value: 'reduced' as const, label: 'Reduced' },
+              { value: 'changed' as const, label: 'Changed' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setSocialInteraction(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  socialInteraction === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Sleep Changes</label>
+          <p className="text-xs text-stone-400 mb-2">Increased day sleeping, nighttime restlessness, or reversed sleep cycle.</p>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'none' as const, label: 'None' },
+              { value: 'mild' as const, label: 'Mild' },
+              { value: 'significant' as const, label: 'Significant' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setSleepChanges(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  sleepChanges === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">House Training</label>
+          <p className="text-xs text-stone-400 mb-2">Toileting indoors despite access to outside or litter box.</p>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'normal' as const, label: 'Normal' },
+              { value: 'occasional_accidents' as const, label: 'Occasional' },
+              { value: 'frequent_accidents' as const, label: 'Frequent' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setHouseTraining(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  houseTraining === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Activity Changes</label>
+          <p className="text-xs text-stone-400 mb-2">Changes in play, exploration, or purposeful movement.</p>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'normal' as const, label: 'Normal' },
+              { value: 'less_active' as const, label: 'Less Active' },
+              { value: 'aimless_pacing' as const, label: 'Pacing' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setActivityChanges(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  activityChanges === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Anxiety / Restlessness</label>
+          <p className="text-xs text-stone-400 mb-2">Increased vocalisation, seeking attention, or unexplained distress.</p>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'none' as const, label: 'None' },
+              { value: 'mild' as const, label: 'Mild' },
+              { value: 'significant' as const, label: 'Significant' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setAnxiety(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  anxiety === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Notes <span className="text-stone-400 font-normal">(optional)</span>
+          </label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+            placeholder="Any specific episodes or observations this week?"
+            rows={2}
+            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
+              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none" />
+        </div>
+        <BackdateDisclosure
+          open={backdateOpen}
+          onToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
+          value={selectedLogDate}
+          onChange={setSelectedLogDate}
+        />
+        <button type="button" disabled={saving} onClick={handleSave}
+          className="w-full rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
+            disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors">
+          Save Weekly Check-In
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── DM Weekly Check-In Form ───────────────────────────────────────────────
+
+function DMLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
+  const [hindLimbWalking, setHindLimbWalking] = useState<'normal_gait' | 'wobbling_or_weak' | 'knuckling' | 'cannot_walk'>('wobbling_or_weak')
+  const [canRiseUnassisted, setCanRiseUnassisted] = useState<'yes' | 'with_difficulty' | 'no'>('yes')
+  const [pawPlacement, setPawPlacement] = useState<'normal' | 'knuckling_occasional' | 'knuckling_constant'>('normal')
+  const [continenceStatus, setContinenceStatus] = useState<'continent' | 'occasional_accident' | 'incontinent'>('continent')
+  const [forelimbStrength, setForelimbStrength] = useState<'normal' | 'mild_weakness' | 'significant_weakness'>('normal')
+  const [rehabDoneToday, setRehabDoneToday] = useState(false)
+  const [notes, setNotes] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [backdateOpen, setBackdateOpen] = useState(false)
+  const [selectedLogDate, setSelectedLogDate] = useState('')
+
+  const handleSave = useCallback(() => {
+    setSaving(true)
+    const entryDate = selectedLogDate || today()
+    const entryTimestamp = selectedLogDate
+      ? new Date(`${selectedLogDate}T12:00:00`).toISOString()
+      : new Date().toISOString()
+    const entry: DMLogEntry = {
+      id: crypto.randomUUID(),
+      date: entryDate,
+      timestamp: entryTimestamp,
+      condition: 'degenerative_myelopathy',
+      hindLimbWalking,
+      canRiseUnassisted,
+      pawPlacement,
+      continenceStatus,
+      forelimbStrength,
+      rehabDoneToday,
+      notes: notes.trim() || undefined,
+    }
+    onSave(entry)
+    setHindLimbWalking('wobbling_or_weak')
+    setCanRiseUnassisted('yes')
+    setPawPlacement('normal')
+    setContinenceStatus('continent')
+    setForelimbStrength('normal')
+    setRehabDoneToday(false)
+    setNotes('')
+    setSelectedLogDate('')
+    setBackdateOpen(false)
+    setSaving(false)
+  }, [hindLimbWalking, canRiseUnassisted, pawPlacement, continenceStatus, forelimbStrength, rehabDoneToday, notes, selectedLogDate, onSave])
+
+  return (
+    <div className="bg-white rounded-xl border border-stone-200 p-4">
+      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-4">Weekly Mobility Check-In</p>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Hind Limb Walking</label>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'normal_gait' as const, label: 'Normal' },
+              { value: 'wobbling_or_weak' as const, label: 'Wobbling' },
+              { value: 'knuckling' as const, label: 'Knuckling' },
+              { value: 'cannot_walk' as const, label: "Can't Walk" },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setHindLimbWalking(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  hindLimbWalking === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Rising from Rest</label>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'yes' as const, label: 'Unassisted' },
+              { value: 'with_difficulty' as const, label: 'With Help' },
+              { value: 'no' as const, label: 'Cannot Rise' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setCanRiseUnassisted(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  canRiseUnassisted === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Paw Placement</label>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'normal' as const, label: 'Normal' },
+              { value: 'knuckling_occasional' as const, label: 'Occasional' },
+              { value: 'knuckling_constant' as const, label: 'Constant' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setPawPlacement(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  pawPlacement === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Bladder / Bowel Control</label>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'continent' as const, label: 'Continent' },
+              { value: 'occasional_accident' as const, label: 'Occasional' },
+              { value: 'incontinent' as const, label: 'Incontinent' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setContinenceStatus(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  continenceStatus === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Forelimb Strength</label>
+          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+            {([
+              { value: 'normal' as const, label: 'Normal' },
+              { value: 'mild_weakness' as const, label: 'Mild Weakness' },
+              { value: 'significant_weakness' as const, label: 'Significant' },
+            ]).map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setForelimbStrength(opt.value)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                  forelimbStrength === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-sm font-medium text-stone-700 cursor-pointer">
+            <input type="checkbox" checked={rehabDoneToday} onChange={(e) => setRehabDoneToday(e.target.checked)}
+              className="rounded border-stone-300 text-amber-500 focus:ring-amber-400" />
+            Physiotherapy or exercise done this week
+          </label>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Notes <span className="text-stone-400 font-normal">(optional)</span>
+          </label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+            placeholder="Any changes from last week? New equipment or adaptations?"
+            rows={2}
+            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
+              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none" />
+        </div>
+        <BackdateDisclosure
+          open={backdateOpen}
+          onToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
+          value={selectedLogDate}
+          onChange={setSelectedLogDate}
+        />
+        <button type="button" disabled={saving} onClick={handleSave}
+          className="w-full rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
+            disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors">
+          Save Weekly Check-In
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────
 
 function Dashboard({
@@ -811,30 +2030,87 @@ function Dashboard({
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [showEpilepsyForm, setShowEpilepsyForm] = useState(false)
+
+  const condition = profile.condition
+  const isCHF = condition === 'chf'
+  const isDiabetes = condition === 'feline_diabetes'
+  const isCKD = condition === 'chronic_kidney_disease'
+  const isCushings = condition === 'cushings_disease'
+  const isOA = condition === 'osteoarthritis'
+  const isEpilepsy = condition === 'epilepsy'
+  const isHyperthyroidism = condition === 'feline_hyperthyroidism'
+  const isIBD = condition === 'ibd'
+  const isCDS = condition === 'cognitive_dysfunction'
+  const isDM = condition === 'degenerative_myelopathy'
+  const isWeekly = isCDS || isDM
+  const hasSettings = isDiabetes || isCHF
 
   const latestLog = logs[0] ?? null
+  const epilepsyLogs = logs.filter((l): l is EpilepsyLogEntry => l.condition === 'epilepsy')
 
-  const latestRisk = latestLog
-    ? latestLog.condition === 'chf'
-      ? evaluateCHFRisk(latestLog.srrBpm, profile.chfBaselineSRR ?? null, latestLog.lethargyLevel)
-      : evaluateGlucoseRisk(latestLog.bloodGlucose)
-    : null
+  const latestRisk = (() => {
+    if (isEpilepsy) return evaluateEpilepsyRisk(epilepsyLogs)
+    if (!latestLog) return null
+    switch (latestLog.condition) {
+      case 'feline_diabetes': return evaluateGlucoseRisk(latestLog.bloodGlucose)
+      case 'chf': return evaluateCHFRisk(latestLog.srrBpm, profile.chfBaselineSRR ?? null, latestLog.lethargyLevel)
+      case 'chronic_kidney_disease': return evaluateCKDRisk(latestLog)
+      case 'cushings_disease': return evaluateCushingsRisk(latestLog)
+      case 'osteoarthritis': return evaluateOARisk(latestLog)
+      case 'feline_hyperthyroidism': return evaluateHyperthyroidismRisk(latestLog as HyperthyroidismLogEntry)
+      case 'ibd': return evaluateIBDRisk(latestLog as IBDLogEntry)
+      case 'cognitive_dysfunction': return evaluateCDSRisk(latestLog as CDSLogEntry)
+      case 'degenerative_myelopathy': return evaluateDMRisk(latestLog as DMLogEntry)
+      default: return null
+    }
+  })()
 
   const chartCutoff = new Date()
   chartCutoff.setDate(chartCutoff.getDate() - 7)
   chartCutoff.setHours(0, 0, 0, 0)
 
-  const chartData = logs
+  function getChartValue(l: CareLogEntry): number | null {
+    switch (l.condition) {
+      case 'feline_diabetes': return l.bloodGlucose
+      case 'chf': return l.srrBpm
+      case 'chronic_kidney_disease': return l.lethargyScore
+      case 'cushings_disease': return l.lethargyScore
+      case 'osteoarthritis': return l.overallMobilityScore
+      case 'feline_hyperthyroidism': return l.lethargyScore
+      case 'ibd': return l.vomitingCount
+      default: return null
+    }
+  }
+
+  const chartData = (isEpilepsy || isWeekly) ? [] : logs
     .filter((l) => new Date(l.timestamp) >= chartCutoff)
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-    .map((l) => ({
-      timestamp: l.timestamp,
-      value: l.condition === 'chf' ? l.srrBpm : l.bloodGlucose,
-    }))
+    .flatMap((l) => {
+      const v = getChartValue(l)
+      return v !== null ? [{ timestamp: l.timestamp, value: v }] : []
+    })
 
-  const isCHF = profile.condition === 'chf'
-  const chartUnit = isCHF ? 'bpm' : 'mg/dL'
-  const disclaimer = isCHF ? CHF_DISCLAIMER : GLUCOSE_DISCLAIMER
+  const chartUnit = isCHF ? 'bpm' : isDiabetes ? 'mg/dL'
+    : isOA ? 'mobility (1–5)'
+    : isIBD ? 'vomit episodes'
+    : 'lethargy (1–5)'
+  const disclaimer = isDiabetes ? GLUCOSE_DISCLAIMER
+    : isCHF ? CHF_DISCLAIMER
+    : isCKD ? CKD_DISCLAIMER
+    : isCushings ? CUSHINGS_DISCLAIMER
+    : isOA ? OA_DISCLAIMER
+    : isEpilepsy ? EPILEPSY_DISCLAIMER
+    : isHyperthyroidism ? HYPERTHYROIDISM_DISCLAIMER
+    : isIBD ? IBD_DISCLAIMER
+    : isCDS ? CDS_DISCLAIMER
+    : DM_DISCLAIMER
+
+  const now = Date.now()
+  const ms24h = 24 * 60 * 60 * 1000
+  const ms30d = 30 * 24 * 60 * 60 * 1000
+  const seizures24h = epilepsyLogs.filter((l) => now - new Date(l.timestamp).getTime() <= ms24h).length
+  const seizures30d = epilepsyLogs.filter((l) => now - new Date(l.timestamp).getTime() <= ms30d).length
 
   const recentLogs = logs.slice(0, 5)
   const diabetesLogs = logs.filter((l): l is DiabetesLogEntry => l.condition === 'feline_diabetes')
@@ -876,6 +2152,7 @@ function Dashboard({
             <Plus className="w-3.5 h-3.5" />
             Add Pet
           </Link>
+          {hasSettings && (
           <button
             onClick={() => setSettingsOpen(!settingsOpen)}
             className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors"
@@ -884,10 +2161,11 @@ function Dashboard({
             <Settings className="w-3.5 h-3.5" />
             Settings
           </button>
+        )}
         </div>
       </header>
 
-      {settingsOpen && (
+      {settingsOpen && hasSettings && (
         isCHF ? (
           <CHFSettingsPanel
             petId={petId}
@@ -907,28 +2185,225 @@ function Dashboard({
 
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-6">
 
-        {latestRisk && latestLog && (
+        <div className="flex justify-end">
+          <CareExportButton petId={petId} />
+        </div>
+
+        {/* ── Epilepsy dashboard ── */}
+        {isEpilepsy && (
+          <>
+            {latestRisk && latestRisk.level === 'critical' && (
+              <div className="rounded-xl border border-red-300 bg-red-50 p-4">
+                <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-1">⚠ Emergency</p>
+                <p className="text-sm font-medium text-red-900">{latestRisk.message}</p>
+              </div>
+            )}
+            <div className="bg-white rounded-xl border border-stone-200 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Seizure Activity</p>
+                  <div className="flex gap-6 mt-2">
+                    <div>
+                      <p className="text-2xl font-bold text-stone-900">{seizures24h}</p>
+                      <p className="text-xs text-stone-400">last 24 hours</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-stone-900">{seizures30d}</p>
+                      <p className="text-xs text-stone-400">last 30 days</p>
+                    </div>
+                  </div>
+                </div>
+                {latestRisk && latestRisk.level !== 'critical' && (
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${latestRisk.badgeColor}`}>
+                    {latestRisk.level.charAt(0).toUpperCase() + latestRisk.level.slice(1)}
+                  </span>
+                )}
+              </div>
+              {latestRisk && latestRisk.level !== 'critical' && (
+                <p className="text-sm text-stone-600">{latestRisk.message}</p>
+              )}
+            </div>
+            {showEpilepsyForm ? (
+              <div>
+                <EpilepsyLogForm onSave={(e) => { onNewLog(e); setShowEpilepsyForm(false) }} />
+                <button onClick={() => setShowEpilepsyForm(false)}
+                  className="mt-2 w-full text-xs text-stone-400 hover:text-stone-600 transition-colors py-2">
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setShowEpilepsyForm(true)}
+                className="w-full rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold py-4 text-base transition-colors">
+                + Log a Seizure
+              </button>
+            )}
+          </>
+        )}
+
+        {/* ── Weekly conditions (CDS / DM) ── */}
+        {isWeekly && (
+          <>
+            {latestRisk && latestLog && (
+              <div className="bg-white rounded-xl border border-stone-200 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs text-stone-400 mb-1">Latest weekly check-in</p>
+                    {isCDS && latestLog.condition === 'cognitive_dysfunction' && (
+                      <p className="text-3xl font-bold text-stone-900">
+                        {computeDISHAAScore(latestLog as CDSLogEntry)}
+                        <span className="text-base font-normal text-stone-400">/12</span>
+                        <span className="text-base font-normal text-stone-400 ml-1">DISHAA</span>
+                      </p>
+                    )}
+                    {isDM && latestLog.condition === 'degenerative_myelopathy' && (
+                      <p className="text-base font-semibold text-stone-900">
+                        {(latestLog as DMLogEntry).hindLimbWalking.replace(/_/g, ' ')}
+                      </p>
+                    )}
+                    <p className="text-xs text-stone-400 mt-0.5">
+                      {fmtDate(latestLog.date)} at {fmtTime(latestLog.timestamp)}
+                    </p>
+                  </div>
+                  <span className={`mt-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${latestRisk.badgeColor}`}>
+                    {latestRisk.displayLabel ?? (latestRisk.level.charAt(0).toUpperCase() + latestRisk.level.slice(1))}
+                  </span>
+                </div>
+                <p className="text-sm text-stone-600 mt-3">{latestRisk.message}</p>
+              </div>
+            )}
+            {isDM && latestLog && latestLog.condition === 'degenerative_myelopathy' &&
+              ((latestLog as DMLogEntry).hindLimbWalking === 'cannot_walk' || (latestLog as DMLogEntry).continenceStatus === 'incontinent') && (
+              <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+                <p className="text-xs font-semibold text-stone-600 uppercase tracking-wide mb-1">Mobility Aid Resources</p>
+                <p className="text-sm text-stone-600">
+                  Wheelchair carts, drag bags, and sling harnesses can significantly improve quality of life at this stage.
+                  Ask your vet or a veterinary rehabilitation specialist for recommendations suited to your dog&rsquo;s size.
+                </p>
+              </div>
+            )}
+            {isCDS && <CDSLogForm onSave={onNewLog} />}
+            {isDM && <DMLogForm onSave={onNewLog} />}
+            {recentLogs.length > 0 && (
+              <div className="bg-white rounded-xl border border-stone-200 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Recent Check-Ins</p>
+                  {logs.length > 5 && (
+                    <Link href={`/care/${petId}/history`}
+                      className="text-xs text-amber-600 hover:text-amber-700 font-medium transition-colors">
+                      View all →
+                    </Link>
+                  )}
+                </div>
+                <ul className="divide-y divide-stone-100">
+                  {recentLogs.map((log) => {
+                    const weeklyRisk = (() => {
+                      if (log.condition === 'cognitive_dysfunction') return evaluateCDSRisk(log as CDSLogEntry)
+                      if (log.condition === 'degenerative_myelopathy') return evaluateDMRisk(log as DMLogEntry)
+                      return null
+                    })()
+                    if (!weeklyRisk) return null
+                    const isConfirming = pendingDeleteId === log.id
+                    return (
+                      <li key={log.id} className="py-3 flex items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {log.condition === 'cognitive_dysfunction' && (
+                              <span className="font-semibold text-stone-900 text-sm">DISHAA {computeDISHAAScore(log as CDSLogEntry)}/12</span>
+                            )}
+                            {log.condition === 'degenerative_myelopathy' && (
+                              <span className="font-semibold text-stone-900 text-sm">{(log as DMLogEntry).hindLimbWalking.replace(/_/g, ' ')}</span>
+                            )}
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${weeklyRisk.badgeColor}`}>
+                              {weeklyRisk.displayLabel ?? weeklyRisk.level}
+                            </span>
+                          </div>
+                          <p className="text-xs text-stone-400 mt-0.5">
+                            {fmtDate(log.date)} &middot; {fmtTime(log.timestamp)}
+                          </p>
+                        </div>
+                        {isConfirming ? (
+                          <div className="flex gap-1.5 shrink-0">
+                            <button onClick={() => { onDeleteLog(log.id); setPendingDeleteId(null) }}
+                              className="text-xs font-medium text-red-600 hover:text-red-700 px-2 py-1 rounded border border-red-200 hover:bg-red-50 transition-colors">Delete</button>
+                            <button onClick={() => setPendingDeleteId(null)}
+                              className="text-xs font-medium text-stone-500 hover:text-stone-700 px-2 py-1 rounded border border-stone-200 hover:bg-stone-50 transition-colors">Cancel</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setPendingDeleteId(log.id)}
+                            className="text-stone-300 hover:text-red-400 transition-colors shrink-0 mt-0.5" aria-label="Delete entry">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Daily check-in conditions (non-epilepsy, non-weekly) ── */}
+        {!isEpilepsy && !isWeekly && latestRisk && latestLog && (
           <div className="bg-white rounded-xl border border-stone-200 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs text-stone-400 mb-1">Latest reading</p>
-                <p className="text-3xl font-bold text-stone-900">
-                  {latestLog.condition === 'chf' ? latestLog.srrBpm : latestLog.bloodGlucose}
-                  <span className="text-base font-normal text-stone-400 ml-1">{chartUnit}</span>
-                </p>
+                {latestLog.condition === 'feline_diabetes' && (
+                  <p className="text-3xl font-bold text-stone-900">
+                    {latestLog.bloodGlucose}
+                    <span className="text-base font-normal text-stone-400 ml-1">mg/dL</span>
+                  </p>
+                )}
+                {latestLog.condition === 'chf' && (
+                  <p className="text-3xl font-bold text-stone-900">
+                    {latestLog.srrBpm}
+                    <span className="text-base font-normal text-stone-400 ml-1">bpm</span>
+                  </p>
+                )}
+                {latestLog.condition === 'chronic_kidney_disease' && (
+                  <p className="text-3xl font-bold text-stone-900">
+                    {latestLog.vomitingCount}
+                    <span className="text-base font-normal text-stone-400 ml-1">vomit episodes</span>
+                  </p>
+                )}
+                {latestLog.condition === 'cushings_disease' && (
+                  <p className="text-3xl font-bold text-stone-900">
+                    {latestLog.lethargyScore}<span className="text-base font-normal text-stone-400">/5</span>
+                    <span className="text-base font-normal text-stone-400 ml-1">lethargy</span>
+                  </p>
+                )}
+                {latestLog.condition === 'osteoarthritis' && (
+                  <p className="text-3xl font-bold text-stone-900">
+                    {latestLog.overallMobilityScore}<span className="text-base font-normal text-stone-400">/5</span>
+                    <span className="text-base font-normal text-stone-400 ml-1">mobility</span>
+                  </p>
+                )}
+                {latestLog.condition === 'feline_hyperthyroidism' && (
+                  <p className="text-3xl font-bold text-stone-900">
+                    {(latestLog as HyperthyroidismLogEntry).vomitingCount}
+                    <span className="text-base font-normal text-stone-400 ml-1">vomit episodes</span>
+                  </p>
+                )}
+                {latestLog.condition === 'ibd' && (
+                  <p className="text-xl font-bold text-stone-900">
+                    {(latestLog as IBDLogEntry).stoolConsistency}
+                    <span className="text-base font-normal text-stone-400 ml-1">stool</span>
+                  </p>
+                )}
                 <p className="text-xs text-stone-400 mt-0.5">
                   {fmtDate(latestLog.date)} at {fmtTime(latestLog.timestamp)}
                 </p>
               </div>
               <span className={`mt-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${latestRisk.badgeColor}`}>
-                {latestRisk.level.charAt(0).toUpperCase() + latestRisk.level.slice(1)}
+                {latestRisk.displayLabel ?? (latestRisk.level.charAt(0).toUpperCase() + latestRisk.level.slice(1))}
               </span>
             </div>
             <p className="text-sm text-stone-600 mt-3">{latestRisk.message}</p>
           </div>
         )}
 
-        {!isCHF && (
+        {isDiabetes && (
           <SupplyCard
             petId={petId}
             profile={profile}
@@ -938,7 +2413,7 @@ function Dashboard({
           />
         )}
 
-        {chartData.length >= 2 && (
+        {!isEpilepsy && !isWeekly && chartData.length >= 2 && (
           <div className="bg-white rounded-xl border border-stone-200 p-4">
             <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-3">7-Day Trend</p>
             <ResponsiveContainer width="100%" height={180}>
@@ -956,7 +2431,7 @@ function Dashboard({
                 <YAxis tick={{ fontSize: 10, fill: '#a8a29e' }} domain={['auto', 'auto']} />
                 <Tooltip
                   contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e7e5e4' }}
-                  formatter={(value) => [`${value} ${chartUnit}`, isCHF ? 'Resp. Rate' : 'Blood Glucose']}
+                  formatter={(value) => [`${value} ${chartUnit}`, isCHF ? 'Resp. Rate' : 'Reading']}
                   labelFormatter={(ts) => {
                     const d = new Date(String(ts))
                     return (
@@ -967,12 +2442,13 @@ function Dashboard({
                   }}
                   labelStyle={{ color: '#78716c', marginBottom: 4 }}
                 />
-                {isCHF ? (
+                {isCHF && (
                   <>
                     <ReferenceLine y={30} stroke="#f59e0b" strokeDasharray="4 2" label={{ value: '30', fontSize: 9, fill: '#f59e0b', position: 'right' }} />
                     <ReferenceLine y={35} stroke="#ef4444" strokeDasharray="4 2" label={{ value: '35', fontSize: 9, fill: '#ef4444', position: 'right' }} />
                   </>
-                ) : (
+                )}
+                {isDiabetes && (
                   <>
                     <ReferenceLine y={80}  stroke="#22c55e" strokeDasharray="4 2" label={{ value: '80',  fontSize: 9, fill: '#22c55e', position: 'right' }} />
                     <ReferenceLine y={250} stroke="#22c55e" strokeDasharray="4 2" label={{ value: '250', fontSize: 9, fill: '#22c55e', position: 'right' }} />
@@ -991,12 +2467,16 @@ function Dashboard({
           </div>
         )}
 
-        {isCHF
-          ? <CHFLogForm onSave={onNewLog} />
-          : <DiabetesLogForm onSave={onNewLog} />
-        }
+        {isDiabetes && <DiabetesLogForm onSave={onNewLog} />}
+        {isCHF && <CHFLogForm onSave={onNewLog} />}
+        {isCKD && <CKDLogForm onSave={onNewLog} />}
+        {isCushings && <CushingsLogForm onSave={onNewLog} />}
+        {isOA && <OALogForm onSave={onNewLog} />}
+        {isHyperthyroidism && <HyperthyroidismLogForm onSave={onNewLog} />}
+        {isIBD && <IBDLogForm onSave={onNewLog} />}
 
-        {recentLogs.length > 0 && (
+        {/* Recent readings — daily non-epilepsy conditions */}
+        {!isEpilepsy && !isWeekly && recentLogs.length > 0 && (
           <div className="bg-white rounded-xl border border-stone-200 p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Recent Readings</p>
@@ -1011,28 +2491,55 @@ function Dashboard({
             </div>
             <ul className="divide-y divide-stone-100">
               {recentLogs.map((log) => {
-                const risk = log.condition === 'chf'
-                  ? evaluateCHFRisk(log.srrBpm, profile.chfBaselineSRR ?? null, log.lethargyLevel)
-                  : evaluateGlucoseRisk(log.bloodGlucose)
+                const risk = (() => {
+                  switch (log.condition) {
+                    case 'feline_diabetes': return evaluateGlucoseRisk(log.bloodGlucose)
+                    case 'chf': return evaluateCHFRisk(log.srrBpm, profile.chfBaselineSRR ?? null, log.lethargyLevel)
+                    case 'chronic_kidney_disease': return evaluateCKDRisk(log)
+                    case 'cushings_disease': return evaluateCushingsRisk(log)
+                    case 'osteoarthritis': return evaluateOARisk(log)
+                    case 'feline_hyperthyroidism': return evaluateHyperthyroidismRisk(log as HyperthyroidismLogEntry)
+                    case 'ibd': return evaluateIBDRisk(log as IBDLogEntry)
+                    default: return null
+                  }
+                })()
+                if (!risk) return null
                 const isConfirming = pendingDeleteId === log.id
                 return (
                   <li key={log.id} className="py-3 flex items-start gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-stone-900 text-sm">
-                          {log.condition === 'chf' ? `${log.srrBpm} bpm` : `${log.bloodGlucose} mg/dL`}
-                        </span>
+                        {log.condition === 'feline_diabetes' && (
+                          <span className="font-semibold text-stone-900 text-sm">{log.bloodGlucose} mg/dL</span>
+                        )}
+                        {log.condition === 'chf' && (
+                          <span className="font-semibold text-stone-900 text-sm">{log.srrBpm} bpm</span>
+                        )}
+                        {log.condition === 'chronic_kidney_disease' && (
+                          <span className="font-semibold text-stone-900 text-sm">{log.vomitingCount} vomit · skin: {log.skinTurgor}</span>
+                        )}
+                        {log.condition === 'cushings_disease' && (
+                          <span className="font-semibold text-stone-900 text-sm">lethargy {log.lethargyScore}/5 · water: {log.waterIntake}</span>
+                        )}
+                        {log.condition === 'osteoarthritis' && (
+                          <span className="font-semibold text-stone-900 text-sm">mobility {log.overallMobilityScore}/5 · rising: {log.easOfRising}</span>
+                        )}
+                        {log.condition === 'feline_hyperthyroidism' && (
+                          <span className="font-semibold text-stone-900 text-sm">{(log as HyperthyroidismLogEntry).vomitingCount} vomit · appetite: {(log as HyperthyroidismLogEntry).appetite}</span>
+                        )}
+                        {log.condition === 'ibd' && (
+                          <span className="font-semibold text-stone-900 text-sm">stool: {(log as IBDLogEntry).stoolConsistency} · {(log as IBDLogEntry).vomitingCount} vomit</span>
+                        )}
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${risk.badgeColor}`}>
-                          {risk.level}
+                          {risk.displayLabel ?? risk.level}
                         </span>
                       </div>
                       <p className="text-xs text-stone-400 mt-0.5">
                         {fmtDate(log.date)} &middot; {fmtTime(log.timestamp)}
-                        {log.condition === 'chf'
-                          ? ` · lethargy ${log.lethargyLevel}`
-                          : (log.insulinUnits > 0 ? ` · ${log.insulinUnits}u ${log.insulinType || 'insulin'}` : '') +
-                            ` · ${log.appetite}`
-                        }
+                        {log.condition === 'chf' && ` · lethargy ${log.lethargyLevel}`}
+                        {log.condition === 'feline_diabetes' && (
+                          (log.insulinUnits > 0 ? ` · ${log.insulinUnits}u ${log.insulinType || 'insulin'}` : '') + ` · ${log.appetite}`
+                        )}
                       </p>
                     </div>
                     {isConfirming ? (
@@ -1064,6 +2571,46 @@ function Dashboard({
                   </li>
                 )
               })}
+            </ul>
+          </div>
+        )}
+
+        {/* Epilepsy: seizure event list */}
+        {isEpilepsy && epilepsyLogs.length > 0 && (
+          <div className="bg-white rounded-xl border border-stone-200 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Seizure History</p>
+              {epilepsyLogs.length > 5 && (
+                <Link href={`/care/${petId}/history`}
+                  className="text-xs text-amber-600 hover:text-amber-700 font-medium transition-colors">
+                  View all →
+                </Link>
+              )}
+            </div>
+            <ul className="divide-y divide-stone-100">
+              {epilepsyLogs.slice(0, 5).map((log) => (
+                <li key={log.id} className="py-3">
+                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${
+                      log.severity === 'severe'   ? 'bg-red-100 text-red-800 border-red-300' :
+                      log.severity === 'moderate' ? 'bg-orange-100 text-orange-800 border-orange-300' :
+                      'bg-yellow-100 text-yellow-800 border-yellow-300'
+                    }`}>
+                      {log.severity}
+                    </span>
+                    <span className={`font-semibold text-sm ${log.durationMinutes >= 5 ? 'text-red-700' : 'text-stone-900'}`}>
+                      {log.durationMinutes} min
+                    </span>
+                    {log.durationMinutes >= 5 && (
+                      <span className="text-xs text-red-600 font-medium">⚠ 5+ min</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-stone-400">
+                    {fmtDate(log.date)} at {fmtTime(log.timestamp)}
+                    {log.postIctalMinutes > 0 && ` · ${log.postIctalMinutes} min recovery`}
+                  </p>
+                </li>
+              ))}
             </ul>
           </div>
         )}

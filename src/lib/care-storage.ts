@@ -2,7 +2,7 @@ export interface PetProfile {
   id: string
   name: string
   species: 'cat' | 'dog'
-  condition: 'feline_diabetes' | 'chf'
+  condition: 'feline_diabetes' | 'chf' | 'chronic_kidney_disease' | 'cushings_disease' | 'osteoarthritis' | 'epilepsy' | 'feline_hyperthyroidism' | 'ibd' | 'cognitive_dysfunction' | 'degenerative_myelopathy'
   createdAt: string
   // feline_diabetes fields
   insulinConcentration?: 'U-40' | 'U-100'
@@ -31,7 +31,92 @@ export interface CHFLogEntry extends BaseLogEntry {
   lethargyLevel: 1 | 2 | 3 | 4 | 5
 }
 
-export type CareLogEntry = DiabetesLogEntry | CHFLogEntry
+export interface CKDLogEntry extends BaseLogEntry {
+  condition: 'chronic_kidney_disease'
+  subqFluidMl: number | null
+  vomitingCount: number
+  skinTurgor: 'normal' | 'sticky' | 'tented'
+  appetite: 'normal' | 'reduced' | 'refused'
+  lethargyScore: number
+  notes?: string
+}
+
+export interface CushingsLogEntry extends BaseLogEntry {
+  condition: 'cushings_disease'
+  waterIntake: 'normal' | 'elevated' | 'excessive'
+  indoorAccidents: boolean
+  lethargyScore: number
+  appetite: 'normal' | 'reduced' | 'refused'
+  vomitingOrDiarrhea: boolean
+  medicationGiven: boolean
+  notes?: string
+}
+
+export interface OALogEntry extends BaseLogEntry {
+  condition: 'osteoarthritis'
+  easOfRising: 'smooth' | 'hesitant' | 'refused'
+  stairsNegotiated: 'yes' | 'assisted' | 'refused' | 'no_stairs'
+  jumpingAttempted: 'yes' | 'hesitant' | 'no'
+  painMedGiven: boolean
+  overallMobilityScore: number
+  notes?: string
+}
+
+export interface EpilepsyLogEntry extends BaseLogEntry {
+  condition: 'epilepsy'
+  durationMinutes: number
+  severity: 'mild' | 'moderate' | 'severe'
+  postIctalMinutes: number
+  notes?: string
+}
+
+export interface HyperthyroidismLogEntry extends BaseLogEntry {
+  condition: 'feline_hyperthyroidism'
+  medicationGiven: boolean
+  appetite: 'normal' | 'reduced' | 'ravenous'
+  weightChange: 'stable' | 'losing'
+  vomitingCount: number
+  lethargyScore: number
+  facialScratching: boolean
+  yellowSkinOrGums: boolean
+  bleedingOrBruising: boolean
+  notes?: string
+}
+
+export interface IBDLogEntry extends BaseLogEntry {
+  condition: 'ibd'
+  stoolConsistency: 'normal' | 'soft' | 'watery' | 'bloody'
+  vomitingCount: number
+  appetite: 'normal' | 'reduced' | 'refused'
+  weightChange: 'stable' | 'losing'
+  dietCompliance: boolean
+  lethargyScore: number
+  notes?: string
+}
+
+export interface CDSLogEntry extends BaseLogEntry {
+  condition: 'cognitive_dysfunction'
+  disorientation: 'none' | 'sometimes' | 'often'
+  socialInteraction: 'normal' | 'reduced' | 'changed'
+  sleepChanges: 'none' | 'mild' | 'significant'
+  houseTraining: 'normal' | 'occasional_accidents' | 'frequent_accidents'
+  activityChanges: 'normal' | 'less_active' | 'aimless_pacing'
+  anxiety: 'none' | 'mild' | 'significant'
+  notes?: string
+}
+
+export interface DMLogEntry extends BaseLogEntry {
+  condition: 'degenerative_myelopathy'
+  hindLimbWalking: 'normal_gait' | 'wobbling_or_weak' | 'knuckling' | 'cannot_walk'
+  canRiseUnassisted: 'yes' | 'with_difficulty' | 'no'
+  pawPlacement: 'normal' | 'knuckling_occasional' | 'knuckling_constant'
+  continenceStatus: 'continent' | 'occasional_accident' | 'incontinent'
+  forelimbStrength: 'normal' | 'mild_weakness' | 'significant_weakness'
+  rehabDoneToday: boolean
+  notes?: string
+}
+
+export type CareLogEntry = DiabetesLogEntry | CHFLogEntry | CKDLogEntry | CushingsLogEntry | OALogEntry | EpilepsyLogEntry | HyperthyroidismLogEntry | IBDLogEntry | CDSLogEntry | DMLogEntry
 
 export interface CurrentVial {
   startedAt: string               // ISO timestamp

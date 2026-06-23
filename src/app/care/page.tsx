@@ -8,9 +8,15 @@ import {
 } from 'lucide-react'
 import {
   getAllPets, createPet,
-  type PetRecord,
+  type PetRecord, type PetProfile,
+  type EpilepsyLogEntry, type HyperthyroidismLogEntry, type IBDLogEntry,
+  type CDSLogEntry, type DMLogEntry,
 } from '@/lib/care-storage'
-import { evaluateGlucoseRisk, evaluateCHFRisk } from '@/lib/care-risk-engine'
+import {
+  evaluateGlucoseRisk, evaluateCHFRisk,
+  evaluateCKDRisk, evaluateCushingsRisk, evaluateOARisk, evaluateEpilepsyRisk,
+  evaluateHyperthyroidismRisk, evaluateIBDRisk, evaluateCDSRisk, evaluateDMRisk,
+} from '@/lib/care-risk-engine'
 import Footer from '@/components/footer'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -19,12 +25,22 @@ function SpeciesIcon({ species, className }: { species: 'cat' | 'dog'; className
   return species === 'dog' ? <Dog className={className} /> : <Cat className={className} />
 }
 
-const CONDITION_LABELS: Record<'feline_diabetes' | 'chf', string> = {
+type Condition = PetProfile['condition']
+
+const CONDITION_LABELS: Record<Condition, string> = {
   feline_diabetes: 'Feline Diabetes',
   chf: 'Heart Disease (CHF)',
+  chronic_kidney_disease: 'Kidney Disease (CKD)',
+  cushings_disease: "Cushing's Disease",
+  osteoarthritis: 'Arthritis / Joint Disease (OA)',
+  epilepsy: 'Epilepsy / Seizure Disorder',
+  feline_hyperthyroidism: 'Hyperthyroidism',
+  ibd: 'Inflammatory Bowel Disease (IBD)',
+  cognitive_dysfunction: 'Cognitive Dysfunction (CDS)',
+  degenerative_myelopathy: 'Degenerative Myelopathy (DM)',
 }
 
-const CONDITION_META: Record<'feline_diabetes' | 'chf', { label: string; description: string }> = {
+const CONDITION_META: Record<Condition, { label: string; description: string }> = {
   feline_diabetes: {
     label: 'Feline Diabetes',
     description: 'Daily glucose monitoring helps catch highs and lows early.',
@@ -33,7 +49,48 @@ const CONDITION_META: Record<'feline_diabetes' | 'chf', { label: string; descrip
     label: 'Heart Disease (CHF)',
     description: 'Track resting respiratory rate to monitor heart failure at home.',
   },
+  chronic_kidney_disease: {
+    label: 'Kidney Disease (CKD)',
+    description: 'Track hydration, vomiting, and SubQ fluids to catch dehydration and uremic crises early.',
+  },
+  cushings_disease: {
+    label: "Cushing's Disease",
+    description: 'Monitor medication response and watch for signs of Addisonian crisis from over-suppression.',
+  },
+  osteoarthritis: {
+    label: 'Arthritis / Joint Disease (OA)',
+    description: 'Log mobility and pain levels to track how well analgesic treatment is working.',
+  },
+  epilepsy: {
+    label: 'Epilepsy / Seizure Disorder',
+    description: 'Log seizure events as they happen — timing, duration, and severity help your vet optimize treatment.',
+  },
+  feline_hyperthyroidism: {
+    label: 'Hyperthyroidism',
+    description: 'Daily check-in helps detect methimazole side effects early and track treatment response.',
+  },
+  ibd: {
+    label: 'Inflammatory Bowel Disease (IBD)',
+    description: 'Log GI signs daily to identify flares, track diet compliance, and guide medication adjustments.',
+  },
+  cognitive_dysfunction: {
+    label: 'Cognitive Dysfunction (CDS)',
+    description: 'Weekly DISHAA scoring tracks cognitive decline across six domains and helps guide treatment timing.',
+  },
+  degenerative_myelopathy: {
+    label: 'Degenerative Myelopathy (DM)',
+    description: 'Weekly mobility logging tracks disease progression and helps guide physiotherapy and quality-of-life decisions.',
+  },
 }
+
+const CAT_CONDITIONS: Condition[] = [
+  'feline_diabetes', 'chf', 'chronic_kidney_disease', 'osteoarthritis', 'epilepsy',
+  'feline_hyperthyroidism', 'ibd', 'cognitive_dysfunction',
+]
+const DOG_CONDITIONS: Condition[] = [
+  'chf', 'chronic_kidney_disease', 'cushings_disease', 'osteoarthritis', 'epilepsy',
+  'ibd', 'cognitive_dysfunction', 'degenerative_myelopathy',
+]
 
 // ── Setup Screen ──────────────────────────────────────────────────────────
 
@@ -44,7 +101,7 @@ function SetupScreen({
   onSave: (
     name: string,
     species: 'cat' | 'dog',
-    condition: 'feline_diabetes' | 'chf',
+    condition: Condition,
     concentration?: 'U-40' | 'U-100',
     vialSizeML?: number,
     baselineSRR?: number
@@ -52,7 +109,7 @@ function SetupScreen({
   onBack?: () => void
 }) {
   const [species, setSpecies] = useState<'cat' | 'dog'>('cat')
-  const [condition, setCondition] = useState<'feline_diabetes' | 'chf'>('feline_diabetes')
+  const [condition, setCondition] = useState<Condition>('feline_diabetes')
   const [name, setName] = useState('')
 
   const [showInsulinDetails, setShowInsulinDetails] = useState(false)
@@ -72,7 +129,7 @@ function SetupScreen({
     setBaselineSRRStr('')
   }
 
-  function handleConditionChange(c: 'feline_diabetes' | 'chf') {
+  function handleConditionChange(c: Condition) {
     setCondition(c)
     setShowInsulinDetails(false)
     setShowBaselineDetails(false)
@@ -139,36 +196,28 @@ function SetupScreen({
           </div>
         </div>
 
-        {species === 'cat' && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-stone-700 mb-1.5">Condition</label>
-            <div className="flex rounded-lg overflow-hidden border border-stone-300">
-              {([
-                { value: 'feline_diabetes' as const, label: 'Diabetes' },
-                { value: 'chf'             as const, label: 'Heart Disease' },
-              ]).map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => handleConditionChange(opt.value)}
-                  className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
-                    condition === opt.value
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-white text-stone-600 hover:bg-stone-50'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-stone-700 mb-1.5">Condition</label>
+          <div className="space-y-1.5">
+            {(species === 'cat' ? CAT_CONDITIONS : DOG_CONDITIONS).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => handleConditionChange(c)}
+                className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                  condition === c
+                    ? 'bg-amber-500 text-white border-amber-500'
+                    : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50'
+                }`}
+              >
+                {CONDITION_LABELS[c]}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
 
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 mb-4">
-          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">
-            {species === 'dog' ? 'Condition' : 'Tracking'}
-          </p>
-          <p className="text-sm text-amber-900 font-medium">{conditionMeta.label}</p>
+          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">About this tracker</p>
           <p className="text-xs text-amber-700 mt-1">{conditionMeta.description}</p>
         </div>
 
@@ -286,27 +335,41 @@ function SetupScreen({
 
 // ── Pet List Card ─────────────────────────────────────────────────────────
 
-function PetCard({ record }: { record: PetRecord }) {
+function getPetRisk(record: PetRecord) {
   const { profile, logs } = record
+  if (profile.condition === 'epilepsy') {
+    const eLogs = logs.filter((l): l is EpilepsyLogEntry => l.condition === 'epilepsy')
+    return evaluateEpilepsyRisk(eLogs)
+  }
   const latestLog = logs[0] ?? null
+  if (!latestLog) return null
+  switch (latestLog.condition) {
+    case 'feline_diabetes': return evaluateGlucoseRisk(latestLog.bloodGlucose)
+    case 'chf': return evaluateCHFRisk(latestLog.srrBpm, profile.chfBaselineSRR ?? null, latestLog.lethargyLevel)
+    case 'chronic_kidney_disease': return evaluateCKDRisk(latestLog)
+    case 'cushings_disease': return evaluateCushingsRisk(latestLog)
+    case 'osteoarthritis': return evaluateOARisk(latestLog)
+    case 'feline_hyperthyroidism': return evaluateHyperthyroidismRisk(latestLog as HyperthyroidismLogEntry)
+    case 'ibd': return evaluateIBDRisk(latestLog as IBDLogEntry)
+    case 'cognitive_dysfunction': return evaluateCDSRisk(latestLog as CDSLogEntry)
+    case 'degenerative_myelopathy': return evaluateDMRisk(latestLog as DMLogEntry)
+    default: return null
+  }
+}
 
-  let riskBadge: React.ReactNode = (
+function PetCard({ record }: { record: PetRecord }) {
+  const { profile } = record
+  const risk = getPetRisk(record)
+
+  const riskBadge = risk ? (
+    <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${risk.badgeColor}`}>
+      {risk.displayLabel ?? (risk.level.charAt(0).toUpperCase() + risk.level.slice(1))}
+    </span>
+  ) : (
     <span className="px-2 py-0.5 rounded-full text-xs font-medium border bg-stone-100 text-stone-400 border-stone-200">
       No readings yet
     </span>
   )
-
-  if (latestLog) {
-    const risk =
-      latestLog.condition === 'chf'
-        ? evaluateCHFRisk(latestLog.srrBpm, profile.chfBaselineSRR ?? null, latestLog.lethargyLevel)
-        : evaluateGlucoseRisk(latestLog.bloodGlucose)
-    riskBadge = (
-      <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${risk.badgeColor}`}>
-        {risk.level.charAt(0).toUpperCase() + risk.level.slice(1)}
-      </span>
-    )
-  }
 
   return (
     <Link
@@ -394,7 +457,7 @@ function CareIndexInner() {
   function handleSave(
     name: string,
     species: 'cat' | 'dog',
-    condition: 'feline_diabetes' | 'chf',
+    condition: Condition,
     concentration?: 'U-40' | 'U-100',
     vialSizeML?: number,
     baselineSRR?: number
