@@ -954,7 +954,7 @@ export default function PetHistoryPage() {
   const isIBD = condition === 'ibd'
   const isCDS = condition === 'cognitive_dysfunction'
   const isDM = condition === 'degenerative_myelopathy'
-  const isWeekly = isCDS || isDM
+  const _isWeekly = isCDS || isDM
 
   const diabetesLogs = logs.filter((l): l is DiabetesLogEntry => l.condition === 'feline_diabetes')
   const chfLogs = logs.filter((l): l is CHFLogEntry => l.condition === 'chf')
