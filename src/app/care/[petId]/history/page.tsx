@@ -144,7 +144,7 @@ function TrendChart({
     <div className="bg-white rounded-xl border border-stone-200 p-4">
       <div className="flex items-center justify-between mb-3">
         <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Trend</p>
-        <div className="flex rounded-lg overflow-hidden border border-stone-300">
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
           {CHART_RANGES.map((r) => (
             <button
               key={r}
@@ -1033,7 +1033,7 @@ export default function PetHistoryPage() {
   const remaining = logs.length - visible
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col">
+    <div className="min-h-screen bg-[#FFFBF0] flex flex-col">
       <header className="bg-white border-b border-stone-200 px-4 py-3 flex items-center gap-3">
         <Link
           href={`/care/${petId}`}
@@ -1047,7 +1047,7 @@ export default function PetHistoryPage() {
         <span className="font-semibold text-stone-800">Reading History</span>
       </header>
 
-      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-6">
+      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-6 pb-24 sm:pb-8">
 
         <div className="flex justify-end">
           <CareExportButton petId={petId} />
@@ -1216,7 +1216,7 @@ export default function PetHistoryPage() {
                     <button
                       onClick={() => setVisible((v) => v + PAGE_SIZE)}
                       className="w-full text-sm text-stone-500 hover:text-stone-700 font-medium py-2
-                        rounded-lg border border-stone-200 hover:bg-stone-50 transition-colors"
+                        rounded-xl border border-stone-200 hover:bg-stone-50 transition-colors"
                     >
                       Load {Math.min(PAGE_SIZE, remaining)} more
                     </button>

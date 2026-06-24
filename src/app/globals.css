@@ -4,26 +4,26 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --background: 45 100% 97%;          /* #FFFBF0 warm cream */
+    --foreground: 20 14% 11%;           /* #1C1917 stone-900 */
+    --card: 0 0% 100%;                  /* #FFFFFF white */
+    --card-foreground: 20 14% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    --popover-foreground: 20 14% 11%;
+    --primary: 38 92% 50%;              /* #F59E0B amber-500 */
+    --primary-foreground: 0 0% 100%;    /* white text on amber */
+    --secondary: 45 100% 95%;           /* #FFF8E7 warm tint */
+    --secondary-foreground: 20 14% 11%;
+    --muted: 45 60% 94%;
+    --muted-foreground: 20 6% 49%;      /* stone-500 */
+    --accent: 43 96% 56%;               /* amber-400 */
+    --accent-foreground: 20 14% 11%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 20 6% 90%;                /* stone-200 */
+    --input: 20 6% 83%;                 /* stone-300 */
+    --ring: 38 92% 50%;                 /* amber for focus rings */
+    --radius: 0.75rem;                  /* upgrade from 0.5rem */
   }
 
   .dark {

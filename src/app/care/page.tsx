@@ -151,7 +151,7 @@ function SetupScreen({
   const conditionMeta = CONDITION_META[condition]
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-[#FFFBF0] flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm">
         {onBack && (
           <button
@@ -175,7 +175,7 @@ function SetupScreen({
 
         <div className="mb-4">
           <label className="block text-sm font-medium text-stone-700 mb-1.5">Species</label>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+          <div className="flex rounded-xl overflow-hidden border border-stone-300">
             {([
               { value: 'cat' as const, label: 'Cat' },
               { value: 'dog' as const, label: 'Dog' },
@@ -204,7 +204,7 @@ function SetupScreen({
                 key={c}
                 type="button"
                 onClick={() => handleConditionChange(c)}
-                className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                className={`w-full text-left px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
                   condition === c
                     ? 'bg-amber-500 text-white border-amber-500'
                     : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50'
@@ -230,7 +230,7 @@ function SetupScreen({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={species === 'dog' ? 'e.g. Buddy' : 'e.g. Mochi'}
-            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
+            className="w-full rounded-xl border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
               focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
             onKeyDown={(e) => e.key === 'Enter' && name.trim() && handleSave()}
           />
@@ -247,10 +247,10 @@ function SetupScreen({
               Insulin details (optional — you can add this later)
             </button>
             {showInsulinDetails && (
-              <div className="mt-3 space-y-3 rounded-lg border border-stone-200 bg-stone-50 p-3">
+              <div className="mt-3 space-y-3 rounded-xl border border-stone-200 bg-stone-50 p-3">
                 <div>
                   <label className="block text-xs font-medium text-stone-600 mb-1.5">Insulin Concentration</label>
-                  <div className="flex rounded-lg overflow-hidden border border-stone-300">
+                  <div className="flex rounded-xl overflow-hidden border border-stone-300">
                     {(['U-40', 'U-100'] as const).map((c) => (
                       <button
                         key={c}
@@ -276,7 +276,7 @@ function SetupScreen({
                     onChange={(e) => setVialSizeMlStr(e.target.value)}
                     placeholder="10"
                     min="1"
-                    className="w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-900 text-sm
+                    className="w-full rounded-xl border border-stone-300 px-3 py-2 text-stone-900 text-sm
                       focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
                   />
                 </div>
@@ -296,7 +296,7 @@ function SetupScreen({
               Baseline resting rate (optional — you can set this later)
             </button>
             {showBaselineDetails && (
-              <div className="mt-3 rounded-lg border border-stone-200 bg-stone-50 p-3">
+              <div className="mt-3 rounded-xl border border-stone-200 bg-stone-50 p-3">
                 <label className="block text-xs font-medium text-stone-600 mb-1.5">
                   Baseline resting rate (breaths/min)
                 </label>
@@ -312,7 +312,7 @@ function SetupScreen({
                   placeholder="e.g. 24"
                   min="1"
                   max="60"
-                  className="w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-900 text-sm
+                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-stone-900 text-sm
                     focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
                 />
               </div>
@@ -323,7 +323,7 @@ function SetupScreen({
         <button
           disabled={!name.trim()}
           onClick={handleSave}
-          className="w-full rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
+          className="w-full rounded-xl bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
             disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors"
         >
           Start Tracking
@@ -392,7 +392,7 @@ function PetCard({ record }: { record: PetRecord }) {
 
 function PetListScreen({ pets, onAddPet }: { pets: PetRecord[]; onAddPet: () => void }) {
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col">
+    <div className="min-h-screen bg-[#FFFBF0] flex flex-col">
       <header className="bg-white border-b border-stone-200 px-4 py-3 flex items-center gap-3">
         <Link
           href="/"
@@ -410,14 +410,14 @@ function PetListScreen({ pets, onAddPet }: { pets: PetRecord[]; onAddPet: () => 
           type="button"
           onClick={onAddPet}
           className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-amber-600 hover:text-amber-700
-            border border-amber-200 hover:border-amber-300 bg-white rounded-lg px-3 py-1.5 transition-colors"
+            border border-amber-200 hover:border-amber-300 bg-white rounded-xl px-3 py-1.5 transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
           Add Pet
         </button>
       </header>
 
-      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-3">
+      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-3 pb-24 sm:pb-6">
         <p className="text-xs text-stone-400 mb-1">Your pets</p>
         {pets.map((record) => (
           <PetCard key={record.profile.id} record={record} />

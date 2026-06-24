@@ -88,7 +88,7 @@ function InsuranceContent() {
 
   return (
     <div
-      className="min-h-screen bg-stone-50"
+      className="min-h-screen bg-[#FFFBF0]"
       style={{ fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif' }}
     >
       {/* Header */}
@@ -102,7 +102,7 @@ function InsuranceContent() {
           </Link>
           <Link
             href="/checker"
-            className="inline-flex min-h-[44px] items-center rounded-lg bg-amber-500 px-4 text-sm font-semibold text-stone-900 transition-colors hover:bg-amber-600"
+            className="inline-flex min-h-[44px] items-center rounded-xl bg-amber-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-amber-600"
           >
             Check a Quote →
           </Link>
@@ -110,7 +110,7 @@ function InsuranceContent() {
       </header>
 
       {/* Page header */}
-      <section className="border-b border-stone-100 bg-gradient-to-b from-amber-50 to-stone-50 px-6 py-12 text-center">
+      <section className="border-b border-stone-100 bg-gradient-to-b from-[#FEF3C7] to-[#FFFBF0] px-6 py-12 text-center">
         <div className="mx-auto max-w-xl">
           <h1 className="mb-2 text-[clamp(26px,4vw,38px)] font-extrabold tracking-tight text-stone-900">
             Pet Insurance Calculator
@@ -121,7 +121,7 @@ function InsuranceContent() {
         </div>
       </section>
 
-      <main className="mx-auto max-w-2xl space-y-5 px-6 py-10">
+      <main className="mx-auto max-w-2xl space-y-5 px-6 py-10 pb-24 sm:pb-10">
 
         {/* Insurance toggle */}
         <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
@@ -150,7 +150,7 @@ function InsuranceContent() {
           <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
             <div className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-stone-600">Procedure</label>
+                <label className="mb-1.5 block text-sm font-semibold text-stone-700">Procedure</label>
                 <select
                   value={procedureSlug}
                   onChange={(e) => setProcedureSlug(e.target.value)}
@@ -165,7 +165,7 @@ function InsuranceContent() {
                 </select>
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-stone-600">Estimated cost</label>
+                <label className="mb-1.5 block text-sm font-semibold text-stone-700">Estimated cost</label>
                 <div className="relative">
                   <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-stone-400">
                     $
@@ -189,7 +189,7 @@ function InsuranceContent() {
                   </p>
 
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-stone-600">
+                    <label className="mb-1.5 block text-sm font-semibold text-stone-700">
                       Insurance carrier
                     </label>
                     <select
@@ -205,7 +205,7 @@ function InsuranceContent() {
                   </div>
 
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-stone-600">
+                    <label className="mb-1.5 block text-sm font-semibold text-stone-700">
                       Annual deductible
                     </label>
                     <div className="relative">
@@ -224,7 +224,7 @@ function InsuranceContent() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-stone-600">
+                    <label className="mb-2 block text-sm font-semibold text-stone-700">
                       Reimbursement rate
                     </label>
                     <div className="grid grid-cols-3 gap-2">
@@ -245,7 +245,7 @@ function InsuranceContent() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-stone-600">
+                    <label className="mb-2 block text-sm font-semibold text-stone-700">
                       Has your deductible been met this year?
                     </label>
                     <div className="grid grid-cols-2 gap-2">
@@ -304,7 +304,7 @@ function InsuranceContent() {
                     {fmt(flowAResult.insurancePays)}
                   </p>
                 </div>
-                <div className="rounded-xl bg-stone-50 p-4 text-center">
+                <div className="rounded-xl bg-[#FFF8E7] p-4 text-center">
                   <p className="mb-1 text-xs font-medium text-stone-500">Your out-of-pocket</p>
                   <p className="text-2xl font-extrabold text-stone-800">
                     {fmt(flowAResult.ownerPays)}
@@ -417,7 +417,7 @@ export default function InsurancePage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-stone-50">
+        <div className="flex min-h-screen items-center justify-center bg-[#FFFBF0]">
           <p className="text-stone-400">Loading…</p>
         </div>
       }

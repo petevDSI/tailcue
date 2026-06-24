@@ -9,7 +9,7 @@ import {
 import Link from 'next/link'
 import {
   Cat, Dog, Plus, Minus, Trash2, ArrowLeft, ExternalLink,
-  ChevronDown, ChevronUp, Settings,
+  ChevronDown, ChevronUp, Settings, X, Check,
 } from 'lucide-react'
 import {
   getPet, getAllPets, addLogEntry, deleteLogEntry,
@@ -68,16 +68,16 @@ const APPETITE_OPTIONS: { value: Appetite; label: string }[] = [
 
 function AppetiteSelector({ value, onChange }: { value: Appetite; onChange: (v: Appetite) => void }) {
   return (
-    <div className="flex rounded-lg overflow-hidden border border-stone-300">
+    <div className="flex rounded-xl overflow-hidden border border-stone-300">
       {APPETITE_OPTIONS.map((opt) => (
         <button
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`flex-1 py-2 text-xs font-medium transition-colors ${
+          className={`flex-1 py-3 text-sm font-semibold transition-colors ${
             value === opt.value
               ? 'bg-amber-500 text-white'
-              : 'bg-white text-stone-600 hover:bg-stone-50'
+              : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
           }`}
         >
           {opt.label}
@@ -106,16 +106,16 @@ function LethargySelector({
 }) {
   return (
     <div>
-      <div className="flex rounded-lg overflow-hidden border border-stone-300">
+      <div className="flex rounded-xl overflow-hidden border border-stone-300">
         {([1, 2, 3, 4, 5] as const).map((n) => (
           <button
             key={n}
             type="button"
             onClick={() => onChange(n)}
-            className={`flex-1 py-2 text-xs font-medium transition-colors ${
+            className={`flex-1 py-3 text-sm font-semibold transition-colors ${
               value === n
                 ? 'bg-amber-500 text-white'
-                : 'bg-white text-stone-600 hover:bg-stone-50'
+                : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
             }`}
           >
             {n}
@@ -163,7 +163,7 @@ function DiabetesSettingsPanel({
         <div className="space-y-3 mb-4">
           <div>
             <label className="block text-xs font-medium text-stone-600 mb-1.5">Concentration</label>
-            <div className="flex rounded-lg overflow-hidden border border-stone-300 w-fit">
+            <div className="flex rounded-xl overflow-hidden border border-stone-300 w-fit">
               {(['U-40', 'U-100'] as const).map((c) => (
                 <button
                   key={c}
@@ -188,7 +188,7 @@ function DiabetesSettingsPanel({
               value={vialSizeMlStr}
               onChange={(e) => setVialSizeMlStr(e.target.value)}
               min="1"
-              className="w-28 rounded-lg border border-stone-300 px-3 py-2 text-stone-900 text-sm
+              className="w-28 rounded-xl border border-stone-300 px-3 py-2 text-stone-900 text-sm
                 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
             />
           </div>
@@ -196,14 +196,14 @@ function DiabetesSettingsPanel({
         <div className="flex gap-2">
           <button
             onClick={handleSave}
-            className="text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 px-3 py-1.5 rounded-lg transition-colors"
+            className="text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 px-3 py-1.5 rounded-xl transition-colors"
           >
             Save Defaults
           </button>
           <button
             onClick={onClose}
             className="text-xs font-medium text-stone-500 hover:text-stone-700 px-3 py-1.5
-              rounded-lg border border-stone-200 hover:bg-white transition-colors"
+              rounded-xl border border-stone-200 hover:bg-white transition-colors"
           >
             Cancel
           </button>
@@ -257,21 +257,21 @@ function CHFSettingsPanel({
             placeholder="e.g. 24"
             min="1"
             max="60"
-            className="w-28 rounded-lg border border-stone-300 px-3 py-2 text-stone-900 text-sm
+            className="w-28 rounded-xl border border-stone-300 px-3 py-2 text-stone-900 text-sm
               focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
           />
         </div>
         <div className="flex gap-2">
           <button
             onClick={handleSave}
-            className="text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 px-3 py-1.5 rounded-lg transition-colors"
+            className="text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 px-3 py-1.5 rounded-xl transition-colors"
           >
             Save
           </button>
           <button
             onClick={onClose}
             className="text-xs font-medium text-stone-500 hover:text-stone-700 px-3 py-1.5
-              rounded-lg border border-stone-200 hover:bg-white transition-colors"
+              rounded-xl border border-stone-200 hover:bg-white transition-colors"
           >
             Cancel
           </button>
@@ -311,7 +311,7 @@ function NewVialForm({
     <div className="space-y-3">
       <div>
         <label className="block text-xs font-medium text-stone-600 mb-1.5">Concentration</label>
-        <div className="flex rounded-lg overflow-hidden border border-stone-300">
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
           {(['U-40', 'U-100'] as const).map((c) => (
             <button
               key={c}
@@ -334,13 +334,13 @@ function NewVialForm({
           value={vialSizeMlStr}
           onChange={(e) => setVialSizeMlStr(e.target.value)}
           min="1"
-          className="w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-900 text-sm
+          className="w-full rounded-xl border border-stone-300 px-3 py-2 text-stone-900 text-sm
             focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
         />
       </div>
       <div>
         <label className="block text-xs font-medium text-stone-600 mb-1.5">Vial status</label>
-        <div className="flex rounded-lg overflow-hidden border border-stone-300">
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
           {([
             { value: 'new' as const, label: 'Brand new' },
             { value: 'existing' as const, label: 'Already in use' },
@@ -370,7 +370,7 @@ function NewVialForm({
             onChange={(e) => setUnitsUsedStr(e.target.value)}
             placeholder="0"
             min="0"
-            className="w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-900 text-sm
+            className="w-full rounded-xl border border-stone-300 px-3 py-2 text-stone-900 text-sm
               focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
           />
         </div>
@@ -379,7 +379,7 @@ function NewVialForm({
         <button
           onClick={handleConfirm}
           disabled={!vialSizeMlStr || parseFloat(vialSizeMlStr) <= 0}
-          className="flex-1 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
+          className="flex-1 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
             disabled:text-stone-400 text-white font-semibold py-2.5 text-xs transition-colors"
         >
           Start Tracking This Vial
@@ -387,7 +387,7 @@ function NewVialForm({
         <button
           onClick={onCancel}
           className="px-3 py-2.5 text-xs font-medium text-stone-500 hover:text-stone-700
-            rounded-lg border border-stone-200 hover:bg-stone-50 transition-colors"
+            rounded-xl border border-stone-200 hover:bg-stone-50 transition-colors"
         >
           Cancel
         </button>
@@ -493,7 +493,7 @@ function SupplyCard({
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1 text-xs font-semibold text-amber-700 hover:text-amber-800
-              border border-amber-300 bg-white rounded-lg px-3 py-2 transition-colors"
+              border border-amber-300 bg-white rounded-xl px-3 py-2 transition-colors"
           >
             Chewy Pharmacy <ExternalLink className="w-3 h-3 shrink-0" />
           </a>
@@ -502,7 +502,7 @@ function SupplyCard({
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1 text-xs font-semibold text-amber-700 hover:text-amber-800
-              border border-amber-300 bg-white rounded-lg px-3 py-2 transition-colors"
+              border border-amber-300 bg-white rounded-xl px-3 py-2 transition-colors"
           >
             1-800-PetMeds <ExternalLink className="w-3 h-3 shrink-0" />
           </a>
@@ -559,14 +559,14 @@ function BackdateDisclosure({
         Log for a different date
       </button>
       {open && (
-        <div className="mt-2 rounded-lg border border-stone-200 bg-stone-50 p-3">
+        <div className="mt-2 rounded-xl border border-stone-200 bg-stone-50 p-3">
           <label className="block text-xs font-medium text-stone-600 mb-1.5">Entry date</label>
           <input
             type="date"
             value={value}
             max={today()}
             onChange={(e) => onChange(e.target.value)}
-            className="rounded-lg border border-stone-300 px-3 py-2 text-stone-900 text-sm
+            className="rounded-xl border border-stone-300 px-3 py-2 text-stone-900 text-sm
               focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
           />
           {value && (
@@ -578,9 +578,112 @@ function BackdateDisclosure({
   )
 }
 
+// ── Collapsible Log Form wrapper ─────────────────────────────────────────
+
+interface CollapsibleLogFormProps {
+  petName: string
+  ctaLabel: string
+  greetingHeader: string
+  children: React.ReactNode
+  onSave: () => void
+  canSave: boolean
+  saveLabel: string
+  saveClassName?: string
+  backdateOpen: boolean
+  onBackdateToggle: () => void
+  backdateValue: string
+  onBackdateChange: (v: string) => void
+}
+
+function CollapsibleLogForm({
+  petName: _petName,
+  ctaLabel,
+  greetingHeader,
+  children,
+  onSave,
+  canSave,
+  saveLabel,
+  saveClassName,
+  backdateOpen,
+  onBackdateToggle,
+  backdateValue,
+  onBackdateChange,
+}: CollapsibleLogFormProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  function handleSave() {
+    onSave()
+    setSaved(true)
+    setTimeout(() => {
+      setSaved(false)
+      setIsOpen(false)
+    }, 2000)
+  }
+
+  if (saved) {
+    return (
+      <div className="w-full bg-white rounded-2xl border border-stone-200 shadow-sm p-5 flex items-center justify-center gap-2">
+        <Check className="w-4 h-4 text-green-600" />
+        <span className="text-green-700 font-semibold text-sm">Logged</span>
+      </div>
+    )
+  }
+
+  if (!isOpen) {
+    return (
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-2xl
+          text-base transition-colors shadow-sm flex items-center justify-center gap-2"
+      >
+        <Plus className="w-5 h-5" />
+        {ctaLabel}
+      </button>
+    )
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
+      <div className="px-5 pt-5 pb-4 border-b border-stone-100">
+        <div className="flex items-center justify-between">
+          <p className="text-lg font-bold text-stone-900">{greetingHeader}</p>
+          <button
+            type="button"
+            onClick={() => setIsOpen(false)}
+            className="text-stone-300 hover:text-stone-500 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+      <div className="px-5 py-4 space-y-6">
+        {children}
+        <BackdateDisclosure
+          open={backdateOpen}
+          onToggle={onBackdateToggle}
+          value={backdateValue}
+          onChange={onBackdateChange}
+        />
+        <button
+          type="button"
+          disabled={!canSave}
+          onClick={handleSave}
+          className={`w-full font-bold py-4 rounded-xl text-base transition-colors
+            ${saveClassName ?? 'bg-amber-500 hover:bg-amber-600 text-white'}
+            disabled:bg-stone-200 disabled:text-stone-400`}
+        >
+          {saveLabel}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Diabetes Log Form ─────────────────────────────────────────────────────
 
-function DiabetesLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
+function DiabetesLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void; petName: string }) {
   const [bgInput, setBgInput] = useState('')
   const [insulinUnits, setInsulinUnits] = useState(1.0)
   const [insulinType, setInsulinType] = useState('')
@@ -625,93 +728,79 @@ function DiabetesLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) 
   }, [bgInput, insulinUnits, insulinType, appetite, selectedLogDate, onSave])
 
   return (
-    <div className="bg-white rounded-xl border border-stone-200 p-4">
-      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-4">Log a Reading</p>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Blood Glucose (mg/dL)</label>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={bgInput}
-            onChange={(e) => setBgInput(e.target.value)}
-            placeholder="e.g. 180"
-            min="1"
-            max="999"
-            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
-              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Insulin Units</label>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => adjustInsulin(-0.5)}
-              disabled={insulinUnits <= 0}
-              className="w-9 h-9 flex items-center justify-center rounded-lg border border-stone-300
-                text-stone-600 hover:bg-stone-50 disabled:opacity-30 transition-colors"
-            >
-              <Minus className="w-4 h-4" />
-            </button>
-            <span className="w-14 text-center text-stone-900 font-semibold text-lg tabular-nums">
-              {insulinUnits % 1 === 0 ? `${insulinUnits}.0` : insulinUnits}
-            </span>
-            <button
-              type="button"
-              onClick={() => adjustInsulin(0.5)}
-              className="w-9 h-9 flex items-center justify-center rounded-lg border border-stone-300
-                text-stone-600 hover:bg-stone-50 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
-            Insulin Type <span className="text-stone-400 font-normal">(optional)</span>
-          </label>
-          <input
-            type="text"
-            value={insulinType}
-            onChange={(e) => setInsulinType(e.target.value)}
-            placeholder="e.g. Glargine, PZI"
-            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
-              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Appetite</label>
-          <AppetiteSelector value={appetite} onChange={setAppetite} />
-        </div>
-
-        <BackdateDisclosure
-          open={backdateOpen}
-          onToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
-          value={selectedLogDate}
-          onChange={setSelectedLogDate}
+    <CollapsibleLogForm
+      petName={petName}
+      ctaLabel={`Log a reading for ${petName} →`}
+      greetingHeader={`How's ${petName}'s glucose today?`}
+      onSave={handleSave}
+      canSave={bgInput.trim().length > 0 && parseInt(bgInput, 10) > 0}
+      saveLabel="Save Reading"
+      backdateOpen={backdateOpen}
+      onBackdateToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
+      backdateValue={selectedLogDate}
+      onBackdateChange={setSelectedLogDate}
+    >
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">What was the reading?</p>
+        <p className="text-sm text-stone-500 mb-3">Enter in mg/dL</p>
+        <input
+          type="number"
+          inputMode="numeric"
+          value={bgInput}
+          onChange={(e) => setBgInput(e.target.value)}
+          placeholder="—"
+          min="1"
+          max="999"
+          className="w-full text-center text-3xl font-bold text-stone-900 rounded-xl
+            border-2 border-stone-200 focus:border-amber-400 focus:ring-0 py-4
+            focus:outline-none bg-white"
         />
-
-        <button
-          type="button"
-          disabled={!bgInput.trim() || parseInt(bgInput, 10) <= 0 || saving}
-          onClick={handleSave}
-          className="w-full rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
-            disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors"
-        >
-          Save Reading
-        </button>
       </div>
-    </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">How much insulin did you give?</p>
+        <p className="text-sm text-stone-500 mb-3">Units</p>
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => adjustInsulin(-0.5)} disabled={insulinUnits <= 0}
+            className="w-12 h-12 flex items-center justify-center rounded-xl border border-stone-300
+              text-stone-600 hover:bg-[#FFF8E7] disabled:opacity-30 transition-colors">
+            <Minus className="w-5 h-5" />
+          </button>
+          <span className="w-20 text-center text-stone-900 font-bold text-3xl tabular-nums">
+            {insulinUnits % 1 === 0 ? `${insulinUnits}.0` : insulinUnits}
+          </span>
+          <button type="button" onClick={() => adjustInsulin(0.5)}
+            className="w-12 h-12 flex items-center justify-center rounded-xl border border-stone-300
+              text-stone-600 hover:bg-[#FFF8E7] transition-colors">
+            <Plus className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">Which insulin?</p>
+        <p className="text-sm text-stone-500 mb-3">Optional — e.g. Glargine, PZI</p>
+        <input
+          type="text"
+          value={insulinType}
+          onChange={(e) => setInsulinType(e.target.value)}
+          placeholder="e.g. Glargine, PZI"
+          className="w-full rounded-xl border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
+            focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+        />
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">How was the appetite?</p>
+        <AppetiteSelector value={appetite} onChange={setAppetite} />
+      </div>
+    </CollapsibleLogForm>
   )
 }
 
 // ── CHF Log Form ──────────────────────────────────────────────────────────
 
-function CHFLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
+function CHFLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void; petName: string }) {
   const [srrInput, setSrrInput] = useState('')
   const [lethargyLevel, setLethargyLevel] = useState<1 | 2 | 3 | 4 | 5>(1)
   const [saving, setSaving] = useState(false)
@@ -746,54 +835,40 @@ function CHFLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
   }, [srrInput, lethargyLevel, selectedLogDate, onSave])
 
   return (
-    <div className="bg-white rounded-xl border border-stone-200 p-4">
-      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-4">Log a Reading</p>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
-            Sleeping Respiratory Rate (breaths/min)
-          </label>
-          <p className="text-xs text-stone-400 mb-2">
-            Count breaths for 30 seconds while your pet is calm or asleep, then multiply by 2.
-          </p>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={srrInput}
-            onChange={(e) => setSrrInput(e.target.value)}
-            placeholder="e.g. 24"
-            min="1"
-            max="99"
-            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
-              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
-            Energy Level <span className="text-stone-400 font-normal">(1 = normal, 5 = won&rsquo;t get up)</span>
-          </label>
-          <LethargySelector value={lethargyLevel} onChange={setLethargyLevel} />
-        </div>
-
-        <BackdateDisclosure
-          open={backdateOpen}
-          onToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
-          value={selectedLogDate}
-          onChange={setSelectedLogDate}
+    <CollapsibleLogForm
+      petName={petName}
+      ctaLabel={`Log ${petName}'s breathing rate →`}
+      greetingHeader={`How's ${petName} breathing today?`}
+      onSave={handleSave}
+      canSave={srrInput.trim().length > 0 && parseInt(srrInput, 10) > 0}
+      saveLabel="Save Reading"
+      backdateOpen={backdateOpen}
+      onBackdateToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
+      backdateValue={selectedLogDate}
+      onBackdateChange={setSelectedLogDate}
+    >
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">What was the resting respiratory rate?</p>
+        <p className="text-sm text-stone-500 mb-3">Count breaths for 30 seconds while they&apos;re asleep, then × 2. Enter the result in breaths/min.</p>
+        <input
+          type="number"
+          inputMode="numeric"
+          value={srrInput}
+          onChange={(e) => setSrrInput(e.target.value)}
+          placeholder="—"
+          min="1"
+          max="99"
+          className="w-full text-center text-3xl font-bold text-stone-900 rounded-xl
+            border-2 border-stone-200 focus:border-amber-400 focus:ring-0 py-4
+            focus:outline-none bg-white"
         />
-
-        <button
-          type="button"
-          disabled={!srrInput.trim() || parseInt(srrInput, 10) <= 0 || saving}
-          onClick={handleSave}
-          className="w-full rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
-            disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors"
-        >
-          Save Reading
-        </button>
       </div>
-    </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">How&apos;s the energy today?</p>
+        <LethargySelector value={lethargyLevel} onChange={setLethargyLevel} />
+      </div>
+    </CollapsibleLogForm>
   )
 }
 
@@ -812,16 +887,16 @@ function ScoreSelector({
 }) {
   return (
     <div>
-      <div className="flex rounded-lg overflow-hidden border border-stone-300">
+      <div className="flex rounded-xl overflow-hidden border border-stone-300">
         {([1, 2, 3, 4, 5] as const).map((n) => (
           <button
             key={n}
             type="button"
             onClick={() => onChange(n)}
-            className={`flex-1 py-2 text-xs font-medium transition-colors ${
+            className={`flex-1 py-3 text-sm font-semibold transition-colors ${
               value === n
                 ? 'bg-amber-500 text-white'
-                : 'bg-white text-stone-600 hover:bg-stone-50'
+                : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
             }`}
           >
             {n}
@@ -838,7 +913,7 @@ function ScoreSelector({
 
 // ── CKD Log Form ──────────────────────────────────────────────────────────
 
-function CKDLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
+function CKDLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void; petName: string }) {
   const [vomitingCount, setVomitingCount] = useState(0)
   const [skinTurgor, setSkinTurgor] = useState<'normal' | 'sticky' | 'tented'>('normal')
   const [appetite, setAppetite] = useState<'normal' | 'reduced' | 'refused'>('normal')
@@ -877,110 +952,116 @@ function CKDLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
   }, [vomitingCount, skinTurgor, appetite, lethargyScore, onSubQ, subqFluidMlStr, selectedLogDate, onSave])
 
   return (
-    <div className="bg-white rounded-xl border border-stone-200 p-4">
-      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-4">Log Today&rsquo;s Check-In</p>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Vomiting Episodes (past 24h)</label>
-          <div className="flex items-center gap-3">
-            <button type="button" onClick={() => setVomitingCount(Math.max(0, vomitingCount - 1))}
-              disabled={vomitingCount <= 0}
-              className="w-9 h-9 flex items-center justify-center rounded-lg border border-stone-300
-                text-stone-600 hover:bg-stone-50 disabled:opacity-30 transition-colors">
-              <Minus className="w-4 h-4" />
-            </button>
-            <span className="w-14 text-center text-stone-900 font-semibold text-lg tabular-nums">{vomitingCount}</span>
-            <button type="button" onClick={() => setVomitingCount(Math.min(10, vomitingCount + 1))}
-              className="w-9 h-9 flex items-center justify-center rounded-lg border border-stone-300
-                text-stone-600 hover:bg-stone-50 transition-colors">
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
+    <CollapsibleLogForm
+      petName={petName}
+      ctaLabel={`Log today's check-in for ${petName} →`}
+      greetingHeader={`How's ${petName} doing today?`}
+      onSave={handleSave}
+      canSave={true}
+      saveLabel="Save Check-In"
+      backdateOpen={backdateOpen}
+      onBackdateToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
+      backdateValue={selectedLogDate}
+      onBackdateChange={setSelectedLogDate}
+    >
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">Any vomiting in the last 24 hours?</p>
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => setVomitingCount(Math.max(0, vomitingCount - 1))}
+            disabled={vomitingCount <= 0}
+            className="w-12 h-12 flex items-center justify-center rounded-xl border border-stone-300
+              text-stone-600 hover:bg-[#FFF8E7] disabled:opacity-30 transition-colors">
+            <Minus className="w-5 h-5" />
+          </button>
+          <span className="w-20 text-center text-stone-900 font-bold text-3xl tabular-nums">{vomitingCount}</span>
+          <button type="button" onClick={() => setVomitingCount(Math.min(10, vomitingCount + 1))}
+            className="w-12 h-12 flex items-center justify-center rounded-xl border border-stone-300
+              text-stone-600 hover:bg-[#FFF8E7] transition-colors">
+            <Plus className="w-5 h-5" />
+          </button>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Skin Turgor (dehydration check)</label>
-          <p className="text-xs text-stone-400 mb-2">Gently pinch the skin at the scruff — how quickly does it snap back?</p>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'normal' as const, label: 'Snaps back' },
-              { value: 'sticky' as const, label: 'Slight delay' },
-              { value: 'tented' as const, label: 'Stays lifted' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setSkinTurgor(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  skinTurgor === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Appetite</label>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'normal' as const, label: 'Normal' },
-              { value: 'reduced' as const, label: 'Reduced' },
-              { value: 'refused' as const, label: 'Refused' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setAppetite(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  appetite === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Energy Level (1 = normal, 5 = unresponsive)</label>
-          <ScoreSelector value={lethargyScore} onChange={setLethargyScore} lowLabel="Normal energy" highLabel="Unresponsive" />
-        </div>
-        <div>
-          <label className="flex items-center gap-2 text-sm font-medium text-stone-700 cursor-pointer">
-            <input type="checkbox" checked={onSubQ} onChange={(e) => setOnSubQ(e.target.checked)}
-              className="rounded border-stone-300 text-amber-500 focus:ring-amber-400" />
-            Administered SubQ fluids today
-          </label>
-          {onSubQ && (
-            <div className="mt-2">
-              <label className="block text-xs font-medium text-stone-600 mb-1.5">Amount (mL)</label>
-              <div className="flex items-center gap-2">
-                {[50, 100, 150, 200].map((ml) => (
-                  <button key={ml} type="button" onClick={() => setSubqFluidMlStr(String(ml))}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                      subqFluidMlStr === String(ml) ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-stone-600 border-stone-300 hover:bg-stone-50'
-                    }`}>
-                    {ml}
-                  </button>
-                ))}
-                <input type="number" inputMode="numeric" value={subqFluidMlStr}
-                  onChange={(e) => setSubqFluidMlStr(e.target.value)} placeholder="mL"
-                  className="w-20 rounded-lg border border-stone-300 px-2 py-1.5 text-stone-900 text-xs
-                    focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent" />
-              </div>
-            </div>
-          )}
-        </div>
-        <BackdateDisclosure
-          open={backdateOpen}
-          onToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
-          value={selectedLogDate}
-          onChange={setSelectedLogDate}
-        />
-        <button type="button" disabled={saving} onClick={handleSave}
-          className="w-full rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
-            disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors">
-          Save Check-In
-        </button>
       </div>
-    </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">Hydration check — how&apos;s the skin turgor?</p>
+        <p className="text-sm text-stone-500 mb-3">Gently pinch the scruff. How quickly does it snap back?</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'normal' as const, label: 'Snaps back' },
+            { value: 'sticky' as const, label: 'Slight delay' },
+            { value: 'tented' as const, label: 'Stays lifted' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setSkinTurgor(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                skinTurgor === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">How&apos;s the appetite?</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'normal' as const, label: 'Normal' },
+            { value: 'reduced' as const, label: 'Reduced' },
+            { value: 'refused' as const, label: 'Refused' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setAppetite(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                appetite === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">Energy level today?</p>
+        <ScoreSelector value={lethargyScore} onChange={setLethargyScore} lowLabel="Normal" highLabel="Unresponsive" />
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">Did you give SubQ fluids today?</p>
+        <button type="button" onClick={() => setOnSubQ(!onSubQ)}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-colors
+            ${onSubQ ? 'bg-amber-50 border-amber-400 text-stone-900' : 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'}`}>
+          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors
+            ${onSubQ ? 'bg-amber-500 border-amber-500' : 'border-stone-300'}`}>
+            {onSubQ && <Check className="w-3 h-3 text-white" />}
+          </div>
+          <span className="text-sm font-medium">Yes, SubQ fluids given</span>
+        </button>
+        {onSubQ && (
+          <div className="mt-3">
+            <p className="text-sm text-stone-500 mb-2">Amount (mL)</p>
+            <div className="flex items-center gap-2">
+              {[50, 100, 150, 200].map((ml) => (
+                <button key={ml} type="button" onClick={() => setSubqFluidMlStr(String(ml))}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-xl border transition-colors ${
+                    subqFluidMlStr === String(ml) ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-stone-600 border-stone-300 hover:bg-[#FFF8E7]'
+                  }`}>
+                  {ml}
+                </button>
+              ))}
+              <input type="number" inputMode="numeric" value={subqFluidMlStr}
+                onChange={(e) => setSubqFluidMlStr(e.target.value)} placeholder="mL"
+                className="w-20 rounded-xl border border-stone-300 px-2 py-1.5 text-stone-900 text-xs
+                  focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent" />
+            </div>
+          </div>
+        )}
+      </div>
+    </CollapsibleLogForm>
   )
 }
 
 // ── Cushing's Log Form ────────────────────────────────────────────────────
 
-function CushingsLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
+function CushingsLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void; petName: string }) {
   const [waterIntake, setWaterIntake] = useState<'normal' | 'elevated' | 'excessive'>('normal')
   const [indoorAccidents, setIndoorAccidents] = useState(false)
   const [lethargyScore, setLethargyScore] = useState(1)
@@ -1022,84 +1103,105 @@ function CushingsLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) 
   }, [waterIntake, indoorAccidents, lethargyScore, appetite, vomitingOrDiarrhea, medicationGiven, selectedLogDate, onSave])
 
   return (
-    <div className="bg-white rounded-xl border border-stone-200 p-4">
-      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-4">Log Today&rsquo;s Check-In</p>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Water Intake</label>
-          <p className="text-xs text-stone-400 mb-2">Compared to this dog&rsquo;s pre-treatment baseline.</p>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'normal' as const, label: 'Normal' },
-              { value: 'elevated' as const, label: 'Elevated' },
-              { value: 'excessive' as const, label: 'Excessive' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setWaterIntake(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  waterIntake === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
+    <CollapsibleLogForm
+      petName={petName}
+      ctaLabel={`Log today's check-in for ${petName} →`}
+      greetingHeader={`How's ${petName} doing today?`}
+      onSave={handleSave}
+      canSave={true}
+      saveLabel="Save Check-In"
+      backdateOpen={backdateOpen}
+      onBackdateToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
+      backdateValue={selectedLogDate}
+      onBackdateChange={setSelectedLogDate}
+    >
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">Did {petName} get their Vetoryl / trilostane today?</p>
+        <p className="text-sm text-stone-500 mb-3">With food — this matters for absorption</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: true, label: 'Yes, given' },
+            { value: false, label: 'No / missed' },
+          ]).map((opt) => (
+            <button key={String(opt.value)} type="button" onClick={() => setMedicationGiven(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                medicationGiven === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">How was the water intake?</p>
+        <p className="text-sm text-stone-500 mb-3">Compared to pre-treatment baseline</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'normal' as const, label: 'Normal' },
+            { value: 'elevated' as const, label: 'Elevated' },
+            { value: 'excessive' as const, label: 'Excessive' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setWaterIntake(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                waterIntake === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">Energy level today?</p>
+        <ScoreSelector value={lethargyScore} onChange={setLethargyScore} lowLabel="Normal" highLabel="Unresponsive" />
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">How&apos;s the appetite?</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'normal' as const, label: 'Normal' },
+            { value: 'reduced' as const, label: 'Reduced' },
+            { value: 'refused' as const, label: 'Refused' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setAppetite(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                appetite === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <button type="button" onClick={() => setVomitingOrDiarrhea(!vomitingOrDiarrhea)}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-colors
+            ${vomitingOrDiarrhea ? 'bg-amber-50 border-amber-400 text-stone-900' : 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'}`}>
+          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors
+            ${vomitingOrDiarrhea ? 'bg-amber-500 border-amber-500' : 'border-stone-300'}`}>
+            {vomitingOrDiarrhea && <Check className="w-3 h-3 text-white" />}
           </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Energy Level (1 = normal, 5 = unresponsive)</label>
-          <ScoreSelector value={lethargyScore} onChange={setLethargyScore} lowLabel="Normal energy" highLabel="Unresponsive" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Appetite</label>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'normal' as const, label: 'Normal' },
-              { value: 'reduced' as const, label: 'Reduced' },
-              { value: 'refused' as const, label: 'Refused' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setAppetite(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  appetite === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
+          <span className="text-sm font-medium">Any vomiting or diarrhea today?</span>
+        </button>
+        <button type="button" onClick={() => setIndoorAccidents(!indoorAccidents)}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-colors
+            ${indoorAccidents ? 'bg-amber-50 border-amber-400 text-stone-900' : 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'}`}>
+          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors
+            ${indoorAccidents ? 'bg-amber-500 border-amber-500' : 'border-stone-300'}`}>
+            {indoorAccidents && <Check className="w-3 h-3 text-white" />}
           </div>
-        </div>
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-stone-700 cursor-pointer">
-            <input type="checkbox" checked={vomitingOrDiarrhea} onChange={(e) => setVomitingOrDiarrhea(e.target.checked)}
-              className="rounded border-stone-300 text-amber-500 focus:ring-amber-400" />
-            Vomiting or diarrhea today
-          </label>
-          <label className="flex items-center gap-2 text-sm font-medium text-stone-700 cursor-pointer">
-            <input type="checkbox" checked={indoorAccidents} onChange={(e) => setIndoorAccidents(e.target.checked)}
-              className="rounded border-stone-300 text-amber-500 focus:ring-amber-400" />
-            Urination accidents indoors today
-          </label>
-          <label className="flex items-center gap-2 text-sm font-medium text-stone-700 cursor-pointer">
-            <input type="checkbox" checked={medicationGiven} onChange={(e) => setMedicationGiven(e.target.checked)}
-              className="rounded border-stone-300 text-amber-500 focus:ring-amber-400" />
-            Vetoryl / trilostane given today (with food)
-          </label>
-        </div>
-        <BackdateDisclosure
-          open={backdateOpen}
-          onToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
-          value={selectedLogDate}
-          onChange={setSelectedLogDate}
-        />
-        <button type="button" disabled={saving} onClick={handleSave}
-          className="w-full rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
-            disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors">
-          Save Check-In
+          <span className="text-sm font-medium">Any indoor urination accidents?</span>
         </button>
       </div>
-    </div>
+    </CollapsibleLogForm>
   )
 }
 
 // ── OA Log Form ───────────────────────────────────────────────────────────
 
-function OALogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
+function OALogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void; petName: string }) {
   const [easOfRising, setEasOfRising] = useState<'smooth' | 'hesitant' | 'refused'>('smooth')
   const [stairsNegotiated, setStairsNegotiated] = useState<'yes' | 'assisted' | 'refused' | 'no_stairs'>('no_stairs')
   const [jumpingAttempted, setJumpingAttempted] = useState<'yes' | 'hesitant' | 'no'>('yes')
@@ -1138,92 +1240,99 @@ function OALogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
   }, [easOfRising, stairsNegotiated, jumpingAttempted, painMedGiven, mobilityScore, selectedLogDate, onSave])
 
   return (
-    <div className="bg-white rounded-xl border border-stone-200 p-4">
-      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-4">Log Today&rsquo;s Check-In</p>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Ease of Rising</label>
-          <p className="text-xs text-stone-400 mb-2">How did your pet get up from rest or sleep today?</p>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'smooth' as const, label: 'Smooth' },
-              { value: 'hesitant' as const, label: 'Hesitant' },
-              { value: 'refused' as const, label: 'Refused' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setEasOfRising(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  easOfRising === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
+    <CollapsibleLogForm
+      petName={petName}
+      ctaLabel={`Log ${petName}'s mobility today →`}
+      greetingHeader={`How did ${petName} move today?`}
+      onSave={handleSave}
+      canSave={true}
+      saveLabel="Save Check-In"
+      backdateOpen={backdateOpen}
+      onBackdateToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
+      backdateValue={selectedLogDate}
+      onBackdateChange={setSelectedLogDate}
+    >
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">Getting up from rest — how did it go?</p>
+        <p className="text-sm text-stone-500 mb-3">When they got up from lying or sleeping</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'smooth' as const, label: 'Smooth' },
+            { value: 'hesitant' as const, label: 'Hesitant' },
+            { value: 'refused' as const, label: 'Refused' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setEasOfRising(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                easOfRising === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">Overall mobility today?</p>
+        <p className="text-sm text-stone-500 mb-3">1 = best they usually get, 5 = worst you&apos;ve seen</p>
+        <ScoreSelector value={mobilityScore} onChange={setMobilityScore} lowLabel="Best" highLabel="Worst" />
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">Any jumping or climbing today?</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'yes' as const, label: 'Yes' },
+            { value: 'hesitant' as const, label: 'Hesitant' },
+            { value: 'no' as const, label: 'No' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setJumpingAttempted(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                jumpingAttempted === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">Stairs today?</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'yes' as const, label: 'Managed' },
+            { value: 'assisted' as const, label: 'Assisted' },
+            { value: 'refused' as const, label: 'Refused' },
+            { value: 'no_stairs' as const, label: 'N/A' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setStairsNegotiated(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                stairsNegotiated === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">Pain meds or supplements given today?</p>
+        <button type="button" onClick={() => setPainMedGiven(!painMedGiven)}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-colors
+            ${painMedGiven ? 'bg-amber-50 border-amber-400 text-stone-900' : 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'}`}>
+          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors
+            ${painMedGiven ? 'bg-amber-500 border-amber-500' : 'border-stone-300'}`}>
+            {painMedGiven && <Check className="w-3 h-3 text-white" />}
           </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Stairs</label>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'yes' as const, label: 'Managed' },
-              { value: 'assisted' as const, label: 'Assisted' },
-              { value: 'refused' as const, label: 'Refused' },
-              { value: 'no_stairs' as const, label: 'N/A' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setStairsNegotiated(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  stairsNegotiated === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Jumping / Climbing</label>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'yes' as const, label: 'Yes' },
-              { value: 'hesitant' as const, label: 'Hesitant' },
-              { value: 'no' as const, label: 'No' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setJumpingAttempted(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  jumpingAttempted === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
-            Overall Mobility Today <span className="text-stone-400 font-normal">(1 = best, 5 = worst)</span>
-          </label>
-          <ScoreSelector value={mobilityScore} onChange={setMobilityScore} lowLabel="Best they get" highLabel="Worst seen" />
-        </div>
-        <label className="flex items-center gap-2 text-sm font-medium text-stone-700 cursor-pointer">
-          <input type="checkbox" checked={painMedGiven} onChange={(e) => setPainMedGiven(e.target.checked)}
-            className="rounded border-stone-300 text-amber-500 focus:ring-amber-400" />
-          Pain medication / supplement given today
-        </label>
-        <BackdateDisclosure
-          open={backdateOpen}
-          onToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
-          value={selectedLogDate}
-          onChange={setSelectedLogDate}
-        />
-        <button type="button" disabled={saving} onClick={handleSave}
-          className="w-full rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
-            disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors">
-          Save Check-In
+          <span className="text-sm font-medium">Yes, given today</span>
         </button>
       </div>
-    </div>
+    </CollapsibleLogForm>
   )
 }
 
 // ── Epilepsy Log Form ─────────────────────────────────────────────────────
 
-function EpilepsyLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
+function EpilepsyLogForm({ onSave, petName: _petName }: { onSave: (entry: CareLogEntry) => void; petName: string }) {
   const nowStr = () => {
     const now = new Date()
     now.setSeconds(0, 0)
@@ -1262,72 +1371,76 @@ function EpilepsyLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) 
   }, [seizedAt, durationStr, severity, postIctalStr, notes, onSave])
 
   return (
-    <div className="bg-white rounded-xl border border-stone-200 p-4">
-      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-4">Log This Seizure</p>
-      <div className="space-y-4">
+    <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
+      <div className="px-5 pt-5 pb-4 border-b border-stone-100">
+        <p className="text-lg font-bold text-stone-900">Log this seizure event</p>
+      </div>
+      <div className="px-5 py-4 space-y-6">
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">When did it happen?</label>
+          <p className="text-base font-semibold text-stone-900 mb-3">When did it happen?</p>
           <input type="datetime-local" value={seizedAt}
             max={new Date().toISOString().slice(0, 16)}
             onChange={(e) => setSeizedAt(e.target.value)}
-            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
+            className="w-full rounded-xl border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
               focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent" />
         </div>
+
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Duration (minutes)</label>
-          <p className="text-xs text-stone-400 mb-2">Estimate is fine — &ldquo;about 2 minutes&rdquo; helps your vet.</p>
+          <p className="text-base font-semibold text-stone-900 mb-1">How long did the seizure last?</p>
+          <p className="text-sm text-stone-500 mb-3">Estimate is fine — even &ldquo;about 2 minutes&rdquo; helps your vet</p>
           <input type="number" inputMode="decimal" value={durationStr}
             onChange={(e) => setDurationStr(e.target.value)}
-            placeholder="e.g. 2" min="0.1" step="0.5"
-            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
-              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent" />
+            placeholder="—" min="0.1" step="0.5"
+            className="w-full text-center text-3xl font-bold text-stone-900 rounded-xl
+              border-2 border-stone-200 focus:border-amber-400 focus:ring-0 py-4
+              focus:outline-none bg-white" />
         </div>
+
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Severity</label>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
+          <p className="text-base font-semibold text-stone-900 mb-1">How severe was it?</p>
+          <p className="text-sm text-stone-500 mb-3">Mild = facial twitching · Moderate = partial body · Severe = full grand mal</p>
+          <div className="flex rounded-xl overflow-hidden border border-stone-300">
             {([
               { value: 'mild' as const, label: 'Mild' },
               { value: 'moderate' as const, label: 'Moderate' },
               { value: 'severe' as const, label: 'Severe' },
             ]).map((opt) => (
               <button key={opt.value} type="button" onClick={() => setSeverity(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  severity === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
+                className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                  severity === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
                 }`}>
                 {opt.label}
               </button>
             ))}
           </div>
-          <p className="text-xs text-stone-400 mt-1.5">
-            Mild = facial twitching only. Moderate = partial body. Severe = full grand mal.
-          </p>
         </div>
+
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
-            Recovery time <span className="text-stone-400 font-normal">(minutes)</span>
-          </label>
-          <p className="text-xs text-stone-400 mb-2">When did they seem like themselves again?</p>
+          <p className="text-base font-semibold text-stone-900 mb-1">How long to recover?</p>
+          <p className="text-sm text-stone-500 mb-3">When did they seem like themselves again? (minutes)</p>
           <input type="number" inputMode="numeric" value={postIctalStr}
             onChange={(e) => setPostIctalStr(e.target.value)}
-            placeholder="e.g. 15" min="0"
-            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
-              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent" />
+            placeholder="—" min="0"
+            className="w-full text-center text-3xl font-bold text-stone-900 rounded-xl
+              border-2 border-stone-200 focus:border-amber-400 focus:ring-0 py-4
+              focus:outline-none bg-white" />
         </div>
+
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
-            Notes <span className="text-stone-400 font-normal">(optional)</span>
-          </label>
+          <p className="text-base font-semibold text-stone-900 mb-1">Anything else to note?</p>
+          <p className="text-sm text-stone-500 mb-3">Any trigger, unusual behavior before, or observations</p>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
             placeholder="Any trigger you noticed? Unusual behavior before?"
             rows={2}
-            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
+            className="w-full rounded-xl border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
               focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none" />
         </div>
+
         <button type="button"
           disabled={!durationStr.trim() || parseFloat(durationStr) <= 0 || saving}
           onClick={handleSave}
-          className="w-full rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-stone-200
-            disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors">
+          className="w-full rounded-xl bg-red-600 hover:bg-red-700 disabled:bg-stone-200
+            disabled:text-stone-400 text-white font-bold py-4 text-base transition-colors">
           Save Seizure Event
         </button>
       </div>
@@ -1337,7 +1450,7 @@ function EpilepsyLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) 
 
 // ── Hyperthyroidism Log Form ──────────────────────────────────────────────
 
-function HyperthyroidismLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
+function HyperthyroidismLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void; petName: string }) {
   const [medicationGiven, setMedicationGiven] = useState(true)
   const [appetite, setAppetite] = useState<'normal' | 'reduced' | 'ravenous'>('normal')
   const [weightChange, setWeightChange] = useState<'stable' | 'losing'>('stable')
@@ -1390,105 +1503,136 @@ function HyperthyroidismLogForm({ onSave }: { onSave: (entry: CareLogEntry) => v
   }, [medicationGiven, appetite, weightChange, vomitingStr, lethargyScore, facialScratching, yellowSkinOrGums, bleedingOrBruising, notes, selectedLogDate, onSave])
 
   return (
-    <div className="bg-white rounded-xl border border-stone-200 p-4">
-      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-4">Log Today&rsquo;s Check-In</p>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Appetite</label>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'normal' as const, label: 'Normal' },
-              { value: 'reduced' as const, label: 'Reduced' },
-              { value: 'ravenous' as const, label: 'Ravenous' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setAppetite(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  appetite === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
+    <CollapsibleLogForm
+      petName={petName}
+      ctaLabel={`Log today's check-in for ${petName} →`}
+      greetingHeader={`How's ${petName} doing today?`}
+      onSave={handleSave}
+      canSave={true}
+      saveLabel="Save Check-In"
+      backdateOpen={backdateOpen}
+      onBackdateToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
+      backdateValue={selectedLogDate}
+      onBackdateChange={setSelectedLogDate}
+    >
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">Did {petName} get their methimazole / Felimazole today?</p>
+        <div className="mt-3">
+          <button type="button" onClick={() => setMedicationGiven(!medicationGiven)}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-colors
+              ${medicationGiven ? 'bg-amber-50 border-amber-400 text-stone-900' : 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'}`}>
+            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors
+              ${medicationGiven ? 'bg-amber-500 border-amber-500' : 'border-stone-300'}`}>
+              {medicationGiven && <Check className="w-3 h-3 text-white" />}
+            </div>
+            <span className="text-sm font-medium">Yes, given today</span>
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">How was the appetite?</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'normal' as const, label: 'Normal' },
+            { value: 'reduced' as const, label: 'Reduced' },
+            { value: 'ravenous' as const, label: 'Ravenous' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setAppetite(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                appetite === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">Weight check?</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'stable' as const, label: 'Stable' },
+            { value: 'losing' as const, label: 'Losing' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setWeightChange(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                weightChange === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">Vomiting episodes today?</p>
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => setVomitingStr(String(Math.max(0, parseInt(vomitingStr, 10) - 1)))}
+            disabled={parseInt(vomitingStr, 10) <= 0}
+            className="w-12 h-12 flex items-center justify-center rounded-xl border border-stone-300
+              text-stone-600 hover:bg-[#FFF8E7] disabled:opacity-30 transition-colors">
+            <Minus className="w-5 h-5" />
+          </button>
+          <span className="w-20 text-center text-stone-900 font-bold text-3xl tabular-nums">{vomitingStr}</span>
+          <button type="button" onClick={() => setVomitingStr(String(Math.min(20, parseInt(vomitingStr, 10) + 1)))}
+            className="w-12 h-12 flex items-center justify-center rounded-xl border border-stone-300
+              text-stone-600 hover:bg-[#FFF8E7] transition-colors">
+            <Plus className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">Energy level?</p>
+        <ScoreSelector value={lethargyScore} onChange={setLethargyScore} lowLabel="Normal" highLabel="Unresponsive" />
+      </div>
+
+      <div className="space-y-3">
+        <button type="button" onClick={() => setFacialScratching(!facialScratching)}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-colors
+            ${facialScratching ? 'bg-amber-50 border-amber-400 text-stone-900' : 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'}`}>
+          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors
+            ${facialScratching ? 'bg-amber-500 border-amber-500' : 'border-stone-300'}`}>
+            {facialScratching && <Check className="w-3 h-3 text-white" />}
           </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Weight</label>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'stable' as const, label: 'Stable' },
-              { value: 'losing' as const, label: 'Losing' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setWeightChange(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  weightChange === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
+          <span className="text-sm font-medium">Scratching face or neck? (possible drug reaction)</span>
+        </button>
+        <button type="button" onClick={() => setYellowSkinOrGums(!yellowSkinOrGums)}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-colors
+            ${yellowSkinOrGums ? 'bg-red-50 border-red-400 text-red-900' : 'bg-white border-stone-200 text-stone-700 hover:border-red-200'}`}>
+          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors
+            ${yellowSkinOrGums ? 'bg-red-500 border-red-500' : 'border-stone-300'}`}>
+            {yellowSkinOrGums && <Check className="w-3 h-3 text-white" />}
           </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Vomiting episodes today</label>
-          <input type="number" inputMode="numeric" value={vomitingStr}
-            onChange={(e) => setVomitingStr(e.target.value)}
-            placeholder="0" min="0" max="20"
-            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
-              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Energy Level (1 = normal, 5 = unresponsive)</label>
-          <ScoreSelector value={lethargyScore} onChange={setLethargyScore} lowLabel="Normal energy" highLabel="Unresponsive" />
-        </div>
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-stone-700 cursor-pointer">
-            <input type="checkbox" checked={medicationGiven} onChange={(e) => setMedicationGiven(e.target.checked)}
-              className="rounded border-stone-300 text-amber-500 focus:ring-amber-400" />
-            Methimazole / Felimazole given today
-          </label>
-          <label className="flex items-center gap-2 text-sm font-medium text-stone-700 cursor-pointer">
-            <input type="checkbox" checked={facialScratching} onChange={(e) => setFacialScratching(e.target.checked)}
-              className="rounded border-stone-300 text-amber-500 focus:ring-amber-400" />
-            Facial or neck scratching (possible drug reaction)
-          </label>
-          <label className="flex items-center gap-2 text-sm font-medium text-red-700 cursor-pointer">
-            <input type="checkbox" checked={yellowSkinOrGums} onChange={(e) => setYellowSkinOrGums(e.target.checked)}
-              className="rounded border-red-300 text-red-500 focus:ring-red-400" />
-            <span><span className="font-bold">Yellow skin or gums</span> — stop medication &amp; call vet now</span>
-          </label>
-          <label className="flex items-center gap-2 text-sm font-medium text-red-700 cursor-pointer">
-            <input type="checkbox" checked={bleedingOrBruising} onChange={(e) => setBleedingOrBruising(e.target.checked)}
-              className="rounded border-red-300 text-red-500 focus:ring-red-400" />
-            <span><span className="font-bold">Unexplained bleeding or bruising</span> — stop medication &amp; call vet now</span>
-          </label>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
-            Notes <span className="text-stone-400 font-normal">(optional)</span>
-          </label>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
-            placeholder="Any changes in behaviour or appetite patterns?"
-            rows={2}
-            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
-              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none" />
-        </div>
-        <BackdateDisclosure
-          open={backdateOpen}
-          onToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
-          value={selectedLogDate}
-          onChange={setSelectedLogDate}
-        />
-        <button type="button" disabled={saving} onClick={handleSave}
-          className="w-full rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
-            disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors">
-          Save Check-In
+          <span className="text-sm font-semibold"><span className="font-bold">Yellow skin or gums?</span> — stop medication &amp; call vet now</span>
+        </button>
+        <button type="button" onClick={() => setBleedingOrBruising(!bleedingOrBruising)}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-colors
+            ${bleedingOrBruising ? 'bg-red-50 border-red-400 text-red-900' : 'bg-white border-stone-200 text-stone-700 hover:border-red-200'}`}>
+          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors
+            ${bleedingOrBruising ? 'bg-red-500 border-red-500' : 'border-stone-300'}`}>
+            {bleedingOrBruising && <Check className="w-3 h-3 text-white" />}
+          </div>
+          <span className="text-sm font-semibold"><span className="font-bold">Unexplained bleeding or bruising?</span> — stop medication &amp; call vet now</span>
         </button>
       </div>
-    </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">Anything else to note?</p>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+          placeholder="Any changes in behaviour or appetite patterns?"
+          rows={2}
+          className="w-full rounded-xl border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
+            focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none mt-2" />
+      </div>
+    </CollapsibleLogForm>
   )
 }
 
 // ── IBD Log Form ──────────────────────────────────────────────────────────
 
-function IBDLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
+function IBDLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void; petName: string }) {
   const [stoolConsistency, setStoolConsistency] = useState<'normal' | 'soft' | 'watery' | 'bloody'>('normal')
   const [vomitingStr, setVomitingStr] = useState('0')
   const [appetite, setAppetite] = useState<'normal' | 'reduced' | 'refused'>('normal')
@@ -1535,110 +1679,128 @@ function IBDLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
   }, [stoolConsistency, vomitingStr, appetite, weightChange, dietCompliance, lethargyScore, notes, selectedLogDate, onSave])
 
   return (
-    <div className="bg-white rounded-xl border border-stone-200 p-4">
-      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-4">Log Today&rsquo;s Check-In</p>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Stool Consistency</label>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'normal' as const, label: 'Normal' },
-              { value: 'soft' as const, label: 'Soft' },
-              { value: 'watery' as const, label: 'Watery' },
-              { value: 'bloody' as const, label: 'Bloody' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setStoolConsistency(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  stoolConsistency === opt.value
-                    ? opt.value === 'bloody' ? 'bg-red-600 text-white' : 'bg-amber-500 text-white'
-                    : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
+    <CollapsibleLogForm
+      petName={petName}
+      ctaLabel={`Log today's check-in for ${petName} →`}
+      greetingHeader={`How's ${petName}'s digestion today?`}
+      onSave={handleSave}
+      canSave={true}
+      saveLabel="Save Check-In"
+      backdateOpen={backdateOpen}
+      onBackdateToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
+      backdateValue={selectedLogDate}
+      onBackdateChange={setSelectedLogDate}
+    >
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">How was the stool today?</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'normal' as const, label: 'Normal' },
+            { value: 'soft' as const, label: 'Soft' },
+            { value: 'watery' as const, label: 'Watery' },
+            { value: 'bloody' as const, label: 'Bloody' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setStoolConsistency(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                stoolConsistency === opt.value
+                  ? opt.value === 'bloody' ? 'bg-red-600 text-white' : 'bg-amber-500 text-white'
+                  : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        {stoolConsistency === 'bloody' && (
+          <p className="text-sm text-red-600 font-medium mt-2">If you see blood, contact your vet today.</p>
+        )}
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">Vomiting episodes today?</p>
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => setVomitingStr(String(Math.max(0, parseInt(vomitingStr, 10) - 1)))}
+            disabled={parseInt(vomitingStr, 10) <= 0}
+            className="w-12 h-12 flex items-center justify-center rounded-xl border border-stone-300
+              text-stone-600 hover:bg-[#FFF8E7] disabled:opacity-30 transition-colors">
+            <Minus className="w-5 h-5" />
+          </button>
+          <span className="w-20 text-center text-stone-900 font-bold text-3xl tabular-nums">{vomitingStr}</span>
+          <button type="button" onClick={() => setVomitingStr(String(Math.min(20, parseInt(vomitingStr, 10) + 1)))}
+            className="w-12 h-12 flex items-center justify-center rounded-xl border border-stone-300
+              text-stone-600 hover:bg-[#FFF8E7] transition-colors">
+            <Plus className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">How was the appetite?</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'normal' as const, label: 'Normal' },
+            { value: 'reduced' as const, label: 'Reduced' },
+            { value: 'refused' as const, label: 'Refused' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setAppetite(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                appetite === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">Weight — any change recently?</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'stable' as const, label: 'Stable' },
+            { value: 'losing' as const, label: 'Losing' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setWeightChange(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                weightChange === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">Staying on the prescribed diet?</p>
+        <button type="button" onClick={() => setDietCompliance(!dietCompliance)}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-colors
+            ${dietCompliance ? 'bg-amber-50 border-amber-400 text-stone-900' : 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'}`}>
+          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors
+            ${dietCompliance ? 'bg-amber-500 border-amber-500' : 'border-stone-300'}`}>
+            {dietCompliance && <Check className="w-3 h-3 text-white" />}
           </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Vomiting episodes today</label>
-          <input type="number" inputMode="numeric" value={vomitingStr}
-            onChange={(e) => setVomitingStr(e.target.value)}
-            placeholder="0" min="0" max="20"
-            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
-              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Appetite</label>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'normal' as const, label: 'Normal' },
-              { value: 'reduced' as const, label: 'Reduced' },
-              { value: 'refused' as const, label: 'Refused' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setAppetite(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  appetite === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Weight</label>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'stable' as const, label: 'Stable' },
-              { value: 'losing' as const, label: 'Losing' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setWeightChange(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  weightChange === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Energy Level (1 = normal, 5 = unresponsive)</label>
-          <ScoreSelector value={lethargyScore} onChange={setLethargyScore} lowLabel="Normal energy" highLabel="Unresponsive" />
-        </div>
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-stone-700 cursor-pointer">
-            <input type="checkbox" checked={dietCompliance} onChange={(e) => setDietCompliance(e.target.checked)}
-              className="rounded border-stone-300 text-amber-500 focus:ring-amber-400" />
-            Prescribed diet followed today (no dietary indiscretion)
-          </label>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
-            Notes <span className="text-stone-400 font-normal">(optional)</span>
-          </label>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
-            placeholder="Any trigger foods, stress, or other observations?"
-            rows={2}
-            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
-              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none" />
-        </div>
-        <BackdateDisclosure
-          open={backdateOpen}
-          onToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
-          value={selectedLogDate}
-          onChange={setSelectedLogDate}
-        />
-        <button type="button" disabled={saving} onClick={handleSave}
-          className="w-full rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
-            disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors">
-          Save Check-In
+          <span className="text-sm font-medium">Yes, following prescribed diet</span>
         </button>
       </div>
-    </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">Energy level?</p>
+        <ScoreSelector value={lethargyScore} onChange={setLethargyScore} lowLabel="Normal" highLabel="Unresponsive" />
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">Anything else to note?</p>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+          placeholder="Any trigger foods, stress, or other observations?"
+          rows={2}
+          className="w-full rounded-xl border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
+            focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none mt-2" />
+      </div>
+    </CollapsibleLogForm>
   )
 }
 
 // ── CDS Weekly Check-In Form ──────────────────────────────────────────────
 
-function CDSLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
+function CDSLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void; petName: string }) {
   const [disorientation, setDisorientation] = useState<'none' | 'sometimes' | 'often'>('none')
   const [socialInteraction, setSocialInteraction] = useState<'normal' | 'reduced' | 'changed'>('normal')
   const [sleepChanges, setSleepChanges] = useState<'none' | 'mild' | 'significant'>('none')
@@ -1690,10 +1852,21 @@ function CDSLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
   }, [disorientation, socialInteraction, sleepChanges, houseTraining, activityChanges, anxiety, notes, selectedLogDate, onSave])
 
   return (
-    <div className="bg-white rounded-xl border border-stone-200 p-4">
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Weekly DISHAA Check-In</p>
-        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${
+    <CollapsibleLogForm
+      petName={petName}
+      ctaLabel={`Log this week's check-in for ${petName} →`}
+      greetingHeader={`How has ${petName} been this week?`}
+      onSave={handleSave}
+      canSave={true}
+      saveLabel="Save Weekly Check-In"
+      backdateOpen={backdateOpen}
+      onBackdateToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
+      backdateValue={selectedLogDate}
+      onBackdateChange={setSelectedLogDate}
+    >
+      <div className="flex items-center justify-between -mt-2 mb-2">
+        <p className="text-sm text-stone-500">Six quick questions about this week. Takes about a minute.</p>
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border shrink-0 ${
           liveScore >= 8 ? 'bg-red-100 text-red-700 border-red-300'
           : liveScore >= 4 ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
           : 'bg-green-100 text-green-700 border-green-300'
@@ -1701,144 +1874,136 @@ function CDSLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
           Score: {liveScore}/12
         </span>
       </div>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Disorientation</label>
-          <p className="text-xs text-stone-400 mb-2">Getting lost at home, staring into space, or seeming confused.</p>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'none' as const, label: 'None' },
-              { value: 'sometimes' as const, label: 'Sometimes' },
-              { value: 'often' as const, label: 'Often' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setDisorientation(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  disorientation === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">Any confusion or disorientation this week?</p>
+        <p className="text-sm text-stone-500 mb-3">Getting lost at home, staring into space, seeming confused</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'none' as const, label: 'None' },
+            { value: 'sometimes' as const, label: 'Sometimes' },
+            { value: 'often' as const, label: 'Often' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setDisorientation(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                disorientation === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
         </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Social Interaction</label>
-          <p className="text-xs text-stone-400 mb-2">Changes in how they interact with family members or other pets.</p>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'normal' as const, label: 'Normal' },
-              { value: 'reduced' as const, label: 'Reduced' },
-              { value: 'changed' as const, label: 'Changed' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setSocialInteraction(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  socialInteraction === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Sleep Changes</label>
-          <p className="text-xs text-stone-400 mb-2">Increased day sleeping, nighttime restlessness, or reversed sleep cycle.</p>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'none' as const, label: 'None' },
-              { value: 'mild' as const, label: 'Mild' },
-              { value: 'significant' as const, label: 'Significant' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setSleepChanges(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  sleepChanges === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">House Training</label>
-          <p className="text-xs text-stone-400 mb-2">Toileting indoors despite access to outside or litter box.</p>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'normal' as const, label: 'Normal' },
-              { value: 'occasional_accidents' as const, label: 'Occasional' },
-              { value: 'frequent_accidents' as const, label: 'Frequent' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setHouseTraining(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  houseTraining === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Activity Changes</label>
-          <p className="text-xs text-stone-400 mb-2">Changes in play, exploration, or purposeful movement.</p>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'normal' as const, label: 'Normal' },
-              { value: 'less_active' as const, label: 'Less Active' },
-              { value: 'aimless_pacing' as const, label: 'Pacing' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setActivityChanges(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  activityChanges === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Anxiety / Restlessness</label>
-          <p className="text-xs text-stone-400 mb-2">Increased vocalisation, seeking attention, or unexplained distress.</p>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'none' as const, label: 'None' },
-              { value: 'mild' as const, label: 'Mild' },
-              { value: 'significant' as const, label: 'Significant' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setAnxiety(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  anxiety === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
-            Notes <span className="text-stone-400 font-normal">(optional)</span>
-          </label>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
-            placeholder="Any specific episodes or observations this week?"
-            rows={2}
-            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
-              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none" />
-        </div>
-        <BackdateDisclosure
-          open={backdateOpen}
-          onToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
-          value={selectedLogDate}
-          onChange={setSelectedLogDate}
-        />
-        <button type="button" disabled={saving} onClick={handleSave}
-          className="w-full rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
-            disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors">
-          Save Weekly Check-In
-        </button>
       </div>
-    </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">How about interaction with the family?</p>
+        <p className="text-sm text-stone-500 mb-3">Any change in how they engage with people or other pets?</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'normal' as const, label: 'Normal' },
+            { value: 'reduced' as const, label: 'Reduced' },
+            { value: 'changed' as const, label: 'Changed' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setSocialInteraction(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                socialInteraction === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">Any sleep changes?</p>
+        <p className="text-sm text-stone-500 mb-3">Extra day sleeping, restlessness at night, or reversed schedule</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'none' as const, label: 'None' },
+            { value: 'mild' as const, label: 'Mild' },
+            { value: 'significant' as const, label: 'Significant' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setSleepChanges(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                sleepChanges === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">Any accidents in the house?</p>
+        <p className="text-sm text-stone-500 mb-3">Toileting indoors despite access to outside or litter box</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'normal' as const, label: 'None' },
+            { value: 'occasional_accidents' as const, label: 'Occasional' },
+            { value: 'frequent_accidents' as const, label: 'Frequent' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setHouseTraining(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                houseTraining === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">Activity changes this week?</p>
+        <p className="text-sm text-stone-500 mb-3">Less interest in play, exploration, or purposeful movement</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'normal' as const, label: 'Normal' },
+            { value: 'less_active' as const, label: 'Less Active' },
+            { value: 'aimless_pacing' as const, label: 'Pacing' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setActivityChanges(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                activityChanges === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">Any anxious behavior or unexplained distress?</p>
+        <p className="text-sm text-stone-500 mb-3">Vocalizing more, seeking unusual attention, or seeming unsettled</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'none' as const, label: 'None' },
+            { value: 'mild' as const, label: 'Mild' },
+            { value: 'significant' as const, label: 'Significant' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setAnxiety(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                anxiety === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">Anything else to note this week?</p>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+          placeholder="Any specific episodes or observations this week?"
+          rows={2}
+          className="w-full rounded-xl border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
+            focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none mt-2" />
+      </div>
+    </CollapsibleLogForm>
   )
 }
 
 // ── DM Weekly Check-In Form ───────────────────────────────────────────────
 
-function DMLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
+function DMLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void; petName: string }) {
   const [hindLimbWalking, setHindLimbWalking] = useState<'normal_gait' | 'wobbling_or_weak' | 'knuckling' | 'cannot_walk'>('wobbling_or_weak')
   const [canRiseUnassisted, setCanRiseUnassisted] = useState<'yes' | 'with_difficulty' | 'no'>('yes')
   const [pawPlacement, setPawPlacement] = useState<'normal' | 'knuckling_occasional' | 'knuckling_constant'>('normal')
@@ -1883,125 +2048,135 @@ function DMLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
   }, [hindLimbWalking, canRiseUnassisted, pawPlacement, continenceStatus, forelimbStrength, rehabDoneToday, notes, selectedLogDate, onSave])
 
   return (
-    <div className="bg-white rounded-xl border border-stone-200 p-4">
-      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-4">Weekly Mobility Check-In</p>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Hind Limb Walking</label>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'normal_gait' as const, label: 'Normal' },
-              { value: 'wobbling_or_weak' as const, label: 'Wobbling' },
-              { value: 'knuckling' as const, label: 'Knuckling' },
-              { value: 'cannot_walk' as const, label: "Can't Walk" },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setHindLimbWalking(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  hindLimbWalking === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
+    <CollapsibleLogForm
+      petName={petName}
+      ctaLabel={`Log ${petName}'s weekly mobility check-in →`}
+      greetingHeader={`How has ${petName} been moving this week?`}
+      onSave={handleSave}
+      canSave={true}
+      saveLabel="Save Weekly Check-In"
+      backdateOpen={backdateOpen}
+      onBackdateToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
+      backdateValue={selectedLogDate}
+      onBackdateChange={setSelectedLogDate}
+    >
+      <p className="text-sm text-stone-500 -mt-2 mb-2">A quick weekly snapshot helps your vet track changes over time.</p>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">How are the back legs this week?</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'normal_gait' as const, label: 'Normal' },
+            { value: 'wobbling_or_weak' as const, label: 'Wobbling' },
+            { value: 'knuckling' as const, label: 'Knuckling' },
+            { value: 'cannot_walk' as const, label: "Can't walk" },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setHindLimbWalking(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                hindLimbWalking === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">Can {petName} get up without help?</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'yes' as const, label: 'Yes' },
+            { value: 'with_difficulty' as const, label: 'With difficulty' },
+            { value: 'no' as const, label: 'No' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setCanRiseUnassisted(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                canRiseUnassisted === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">Paw placement — any knuckling?</p>
+        <p className="text-sm text-stone-500 mb-3">Knuckling is when the paw curls under while walking</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'normal' as const, label: 'Normal' },
+            { value: 'knuckling_occasional' as const, label: 'Occasional' },
+            { value: 'knuckling_constant' as const, label: 'Constant' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setPawPlacement(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                pawPlacement === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">Any incontinence this week?</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'continent' as const, label: 'Continent' },
+            { value: 'occasional_accident' as const, label: 'Occasional' },
+            { value: 'incontinent' as const, label: 'Incontinent' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setContinenceStatus(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                continenceStatus === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">Front leg strength?</p>
+        <p className="text-sm text-stone-500 mb-3">DM can eventually affect the front legs too</p>
+        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+          {([
+            { value: 'normal' as const, label: 'Normal' },
+            { value: 'mild_weakness' as const, label: 'Mild weakness' },
+            { value: 'significant_weakness' as const, label: 'Significant' },
+          ]).map((opt) => (
+            <button key={opt.value} type="button" onClick={() => setForelimbStrength(opt.value)}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                forelimbStrength === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-[#FFF8E7]'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-3">Did {petName} get physical therapy or exercises today?</p>
+        <button type="button" onClick={() => setRehabDoneToday(!rehabDoneToday)}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-colors
+            ${rehabDoneToday ? 'bg-amber-50 border-amber-400 text-stone-900' : 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'}`}>
+          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors
+            ${rehabDoneToday ? 'bg-amber-500 border-amber-500' : 'border-stone-300'}`}>
+            {rehabDoneToday && <Check className="w-3 h-3 text-white" />}
           </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Rising from Rest</label>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'yes' as const, label: 'Unassisted' },
-              { value: 'with_difficulty' as const, label: 'With Help' },
-              { value: 'no' as const, label: 'Cannot Rise' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setCanRiseUnassisted(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  canRiseUnassisted === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Paw Placement</label>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'normal' as const, label: 'Normal' },
-              { value: 'knuckling_occasional' as const, label: 'Occasional' },
-              { value: 'knuckling_constant' as const, label: 'Constant' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setPawPlacement(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  pawPlacement === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Bladder / Bowel Control</label>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'continent' as const, label: 'Continent' },
-              { value: 'occasional_accident' as const, label: 'Occasional' },
-              { value: 'incontinent' as const, label: 'Incontinent' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setContinenceStatus(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  continenceStatus === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Forelimb Strength</label>
-          <div className="flex rounded-lg overflow-hidden border border-stone-300">
-            {([
-              { value: 'normal' as const, label: 'Normal' },
-              { value: 'mild_weakness' as const, label: 'Mild Weakness' },
-              { value: 'significant_weakness' as const, label: 'Significant' },
-            ]).map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setForelimbStrength(opt.value)}
-                className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                  forelimbStrength === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-stone-700 cursor-pointer">
-            <input type="checkbox" checked={rehabDoneToday} onChange={(e) => setRehabDoneToday(e.target.checked)}
-              className="rounded border-stone-300 text-amber-500 focus:ring-amber-400" />
-            Physiotherapy or exercise done this week
-          </label>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
-            Notes <span className="text-stone-400 font-normal">(optional)</span>
-          </label>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
-            placeholder="Any changes from last week? New equipment or adaptations?"
-            rows={2}
-            className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
-              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none" />
-        </div>
-        <BackdateDisclosure
-          open={backdateOpen}
-          onToggle={() => { setBackdateOpen(!backdateOpen); if (backdateOpen) setSelectedLogDate('') }}
-          value={selectedLogDate}
-          onChange={setSelectedLogDate}
-        />
-        <button type="button" disabled={saving} onClick={handleSave}
-          className="w-full rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200
-            disabled:text-stone-400 text-white font-semibold py-3 text-sm transition-colors">
-          Save Weekly Check-In
+          <span className="text-sm font-medium">Yes, done today</span>
         </button>
       </div>
-    </div>
+
+      <div>
+        <p className="text-base font-semibold text-stone-900 mb-1">Anything to note this week?</p>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+          placeholder="Any changes from last week? New equipment or adaptations?"
+          rows={2}
+          className="w-full rounded-xl border border-stone-300 px-3 py-2.5 text-stone-900 text-sm
+            focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none mt-2" />
+      </div>
+    </CollapsibleLogForm>
   )
 }
 
@@ -2123,7 +2298,7 @@ function Dashboard({
   )
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col">
+    <div className="min-h-screen bg-[#FFFBF0] flex flex-col">
       <header className="bg-white border-b border-stone-200 px-4 py-3 flex items-center gap-3">
         <Link
           href="/"
@@ -2183,7 +2358,7 @@ function Dashboard({
         )
       )}
 
-      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-6">
+      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-6 pb-24 sm:pb-8">
 
         <div className="flex justify-end">
           <CareExportButton petId={petId} />
@@ -2225,7 +2400,7 @@ function Dashboard({
             </div>
             {showEpilepsyForm ? (
               <div>
-                <EpilepsyLogForm onSave={(e) => { onNewLog(e); setShowEpilepsyForm(false) }} />
+                <EpilepsyLogForm onSave={(e) => { onNewLog(e); setShowEpilepsyForm(false) }} petName={profile.name} />
                 <button onClick={() => setShowEpilepsyForm(false)}
                   className="mt-2 w-full text-xs text-stone-400 hover:text-stone-600 transition-colors py-2">
                   Cancel
@@ -2281,8 +2456,8 @@ function Dashboard({
                 </p>
               </div>
             )}
-            {isCDS && <CDSLogForm onSave={onNewLog} />}
-            {isDM && <DMLogForm onSave={onNewLog} />}
+            {isCDS && <CDSLogForm onSave={onNewLog} petName={profile.name} />}
+            {isDM && <DMLogForm onSave={onNewLog} petName={profile.name} />}
             {recentLogs.length > 0 && (
               <div className="bg-white rounded-xl border border-stone-200 p-4">
                 <div className="flex items-center justify-between mb-3">
@@ -2413,6 +2588,14 @@ function Dashboard({
           />
         )}
 
+        {isDiabetes && <DiabetesLogForm onSave={onNewLog} petName={profile.name} />}
+        {isCHF && <CHFLogForm onSave={onNewLog} petName={profile.name} />}
+        {isCKD && <CKDLogForm onSave={onNewLog} petName={profile.name} />}
+        {isCushings && <CushingsLogForm onSave={onNewLog} petName={profile.name} />}
+        {isOA && <OALogForm onSave={onNewLog} petName={profile.name} />}
+        {isHyperthyroidism && <HyperthyroidismLogForm onSave={onNewLog} petName={profile.name} />}
+        {isIBD && <IBDLogForm onSave={onNewLog} petName={profile.name} />}
+
         {!isEpilepsy && !isWeekly && chartData.length >= 2 && (
           <div className="bg-white rounded-xl border border-stone-200 p-4">
             <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-3">7-Day Trend</p>
@@ -2466,14 +2649,6 @@ function Dashboard({
             </ResponsiveContainer>
           </div>
         )}
-
-        {isDiabetes && <DiabetesLogForm onSave={onNewLog} />}
-        {isCHF && <CHFLogForm onSave={onNewLog} />}
-        {isCKD && <CKDLogForm onSave={onNewLog} />}
-        {isCushings && <CushingsLogForm onSave={onNewLog} />}
-        {isOA && <OALogForm onSave={onNewLog} />}
-        {isHyperthyroidism && <HyperthyroidismLogForm onSave={onNewLog} />}
-        {isIBD && <IBDLogForm onSave={onNewLog} />}
 
         {/* Recent readings — daily non-epilepsy conditions */}
         {!isEpilepsy && !isWeekly && recentLogs.length > 0 && (

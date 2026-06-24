@@ -17,7 +17,7 @@ export default function Footer({ disclaimer = DEFAULT_DISCLAIMER }: { disclaimer
         {NAV_LINKS.map((link, i) => (
           <span key={link.href} className="flex items-center">
             {i > 0 && <span className="mx-2 text-stone-300">·</span>}
-            <Link href={link.href} className="text-xs text-stone-400 hover:underline">
+            <Link href={link.href} className="text-xs text-stone-500 hover:text-stone-700 hover:underline transition-colors">
               {link.label}
             </Link>
           </span>

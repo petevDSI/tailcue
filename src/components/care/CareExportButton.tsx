@@ -41,7 +41,7 @@ export function CareExportButton({ petId }: Props) {
           const v = e.target.value
           setRangedays(v === 'all' ? 'all' : (Number(v) as 14 | 30 | 60 | 90))
         }}
-        className="text-sm border border-stone-200 rounded-lg px-3 py-2 bg-white text-stone-700
+        className="text-sm border border-stone-200 rounded-xl px-3 py-2 bg-white text-stone-700
           focus:outline-none focus:ring-2 focus:ring-amber-400"
       >
         <option value={14}>Last 14 days</option>
@@ -55,7 +55,7 @@ export function CareExportButton({ petId }: Props) {
         onClick={handleExport}
         disabled={loading}
         className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-60
-          text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+          text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
       >
         {loading ? (
           <>

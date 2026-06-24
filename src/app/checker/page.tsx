@@ -744,7 +744,7 @@ function CheckerContent() {
 
   return (
     <>
-    <div className="min-h-screen bg-stone-50">
+    <div className="min-h-screen bg-[#FFFBF0]">
 
       {/* Header */}
       <header className="border-b border-stone-200 bg-white">
@@ -768,16 +768,10 @@ function CheckerContent() {
             Free · Instant · No Account Needed
           </span>
         </div>
-        {/* Mobile back link */}
-        <div className="border-t border-stone-100 px-4 py-2 sm:hidden">
-          <Link href="/" className="text-sm text-stone-400 hover:text-stone-600">
-            ← Back to home
-          </Link>
-        </div>
       </header>
 
       {/* Hero */}
-      <section className="bg-stone-50 py-10 text-center">
+      <section className="bg-[#FFFBF0] py-10 text-center">
         <div className="mx-auto max-w-2xl px-4">
           <h1 className="text-[30px] font-extrabold leading-tight tracking-tight text-stone-900 sm:text-[40px]">
             Is Your Vet Quote Fair?
@@ -788,7 +782,7 @@ function CheckerContent() {
         </div>
       </section>
 
-      <main className="mx-auto max-w-[640px] space-y-5 px-4 pb-20">
+      <main className="mx-auto max-w-[640px] space-y-5 px-4 pb-24 sm:pb-20">
 
         {/* Form card */}
         <Card className="rounded-2xl border border-stone-200 border-t-4 border-t-amber-500 shadow-md">
@@ -933,7 +927,7 @@ function CheckerContent() {
                   >
                     {/* Field A: Carrier */}
                     <div className="space-y-1.5">
-                      <label className="block text-[13px] font-medium text-stone-600">
+                      <label className="block text-[13px] font-semibold text-stone-700">
                         Your insurance provider
                       </label>
                       <select
@@ -976,7 +970,7 @@ function CheckerContent() {
 
                     {/* Field B: Annual deductible */}
                     <div className="space-y-1.5">
-                      <label className="block text-[13px] font-medium text-stone-600">
+                      <label className="block text-[13px] font-semibold text-stone-700">
                         Annual deductible
                       </label>
                       <select
@@ -1007,7 +1001,7 @@ function CheckerContent() {
 
                     {/* Field C: Deductible already met */}
                     <div className="space-y-1.5">
-                      <label className="block text-[13px] font-medium text-stone-600">
+                      <label className="block text-[13px] font-semibold text-stone-700">
                         How much of your deductible have you already used this year?
                       </label>
                       <select
@@ -1025,7 +1019,7 @@ function CheckerContent() {
 
                     {/* Field D: Reimbursement rate */}
                     <div className="space-y-1.5">
-                      <label className="block text-[13px] font-medium text-stone-600">
+                      <label className="block text-[13px] font-semibold text-stone-700">
                         Your reimbursement rate
                       </label>
                       {selectedCarrier &&
@@ -1149,7 +1143,7 @@ function CheckerContent() {
                         href="https://www.theswiftest.com/pet-insurance/"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex min-h-[44px] items-center rounded-lg bg-amber-500 px-4 text-sm font-semibold text-stone-900 transition-colors hover:bg-amber-600"
+                        className="inline-flex min-h-[44px] items-center rounded-xl bg-amber-500 px-4 text-sm font-semibold text-stone-900 transition-colors hover:bg-amber-600"
                       >
                         Compare Pet Insurance Plans →
                       </a>
@@ -1430,7 +1424,7 @@ export default function CheckerPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-stone-50">
+        <div className="flex min-h-screen items-center justify-center bg-[#FFFBF0]">
           <p className="text-stone-400">Loading…</p>
         </div>
       }
