@@ -581,7 +581,6 @@ function BackdateDisclosure({
 // ── Collapsible Log Form wrapper ─────────────────────────────────────────
 
 interface CollapsibleLogFormProps {
-  petName: string
   ctaLabel: string
   greetingHeader: string
   children: React.ReactNode
@@ -596,7 +595,6 @@ interface CollapsibleLogFormProps {
 }
 
 function CollapsibleLogForm({
-  petName: _petName,
   ctaLabel,
   greetingHeader,
   children,
@@ -688,7 +686,6 @@ function DiabetesLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) =>
   const [insulinUnits, setInsulinUnits] = useState(1.0)
   const [insulinType, setInsulinType] = useState('')
   const [appetite, setAppetite] = useState<Appetite>('normal')
-  const [saving, setSaving] = useState(false)
   const [backdateOpen, setBackdateOpen] = useState(false)
   const [selectedLogDate, setSelectedLogDate] = useState('')
 
@@ -699,7 +696,6 @@ function DiabetesLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) =>
   const handleSave = useCallback(() => {
     const bg = parseInt(bgInput, 10)
     if (isNaN(bg) || bg <= 0) return
-    setSaving(true)
 
     const entryDate = selectedLogDate || today()
     const entryTimestamp = selectedLogDate
@@ -724,12 +720,10 @@ function DiabetesLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) =>
     setAppetite('normal')
     setSelectedLogDate('')
     setBackdateOpen(false)
-    setSaving(false)
   }, [bgInput, insulinUnits, insulinType, appetite, selectedLogDate, onSave])
 
   return (
     <CollapsibleLogForm
-      petName={petName}
       ctaLabel={`Log a reading for ${petName} →`}
       greetingHeader={`How's ${petName}'s glucose today?`}
       onSave={handleSave}
@@ -803,14 +797,12 @@ function DiabetesLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) =>
 function CHFLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void; petName: string }) {
   const [srrInput, setSrrInput] = useState('')
   const [lethargyLevel, setLethargyLevel] = useState<1 | 2 | 3 | 4 | 5>(1)
-  const [saving, setSaving] = useState(false)
   const [backdateOpen, setBackdateOpen] = useState(false)
   const [selectedLogDate, setSelectedLogDate] = useState('')
 
   const handleSave = useCallback(() => {
     const srr = parseInt(srrInput, 10)
     if (isNaN(srr) || srr <= 0) return
-    setSaving(true)
 
     const entryDate = selectedLogDate || today()
     const entryTimestamp = selectedLogDate
@@ -831,12 +823,10 @@ function CHFLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void
     setLethargyLevel(1)
     setSelectedLogDate('')
     setBackdateOpen(false)
-    setSaving(false)
   }, [srrInput, lethargyLevel, selectedLogDate, onSave])
 
   return (
     <CollapsibleLogForm
-      petName={petName}
       ctaLabel={`Log ${petName}'s breathing rate →`}
       greetingHeader={`How's ${petName} breathing today?`}
       onSave={handleSave}
@@ -920,12 +910,10 @@ function CKDLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void
   const [lethargyScore, setLethargyScore] = useState(1)
   const [onSubQ, setOnSubQ] = useState(false)
   const [subqFluidMlStr, setSubqFluidMlStr] = useState('100')
-  const [saving, setSaving] = useState(false)
   const [backdateOpen, setBackdateOpen] = useState(false)
   const [selectedLogDate, setSelectedLogDate] = useState('')
 
   const handleSave = useCallback(() => {
-    setSaving(true)
     const entryDate = selectedLogDate || today()
     const entryTimestamp = selectedLogDate
       ? new Date(`${selectedLogDate}T12:00:00`).toISOString()
@@ -948,12 +936,10 @@ function CKDLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void
     setLethargyScore(1)
     setSelectedLogDate('')
     setBackdateOpen(false)
-    setSaving(false)
   }, [vomitingCount, skinTurgor, appetite, lethargyScore, onSubQ, subqFluidMlStr, selectedLogDate, onSave])
 
   return (
     <CollapsibleLogForm
-      petName={petName}
       ctaLabel={`Log today's check-in for ${petName} →`}
       greetingHeader={`How's ${petName} doing today?`}
       onSave={handleSave}
@@ -1068,12 +1054,10 @@ function CushingsLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) =>
   const [appetite, setAppetite] = useState<'normal' | 'reduced' | 'refused'>('normal')
   const [vomitingOrDiarrhea, setVomitingOrDiarrhea] = useState(false)
   const [medicationGiven, setMedicationGiven] = useState(true)
-  const [saving, setSaving] = useState(false)
   const [backdateOpen, setBackdateOpen] = useState(false)
   const [selectedLogDate, setSelectedLogDate] = useState('')
 
   const handleSave = useCallback(() => {
-    setSaving(true)
     const entryDate = selectedLogDate || today()
     const entryTimestamp = selectedLogDate
       ? new Date(`${selectedLogDate}T12:00:00`).toISOString()
@@ -1099,12 +1083,10 @@ function CushingsLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) =>
     setMedicationGiven(true)
     setSelectedLogDate('')
     setBackdateOpen(false)
-    setSaving(false)
   }, [waterIntake, indoorAccidents, lethargyScore, appetite, vomitingOrDiarrhea, medicationGiven, selectedLogDate, onSave])
 
   return (
     <CollapsibleLogForm
-      petName={petName}
       ctaLabel={`Log today's check-in for ${petName} →`}
       greetingHeader={`How's ${petName} doing today?`}
       onSave={handleSave}
@@ -1207,12 +1189,10 @@ function OALogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void;
   const [jumpingAttempted, setJumpingAttempted] = useState<'yes' | 'hesitant' | 'no'>('yes')
   const [painMedGiven, setPainMedGiven] = useState(false)
   const [mobilityScore, setMobilityScore] = useState(1)
-  const [saving, setSaving] = useState(false)
   const [backdateOpen, setBackdateOpen] = useState(false)
   const [selectedLogDate, setSelectedLogDate] = useState('')
 
   const handleSave = useCallback(() => {
-    setSaving(true)
     const entryDate = selectedLogDate || today()
     const entryTimestamp = selectedLogDate
       ? new Date(`${selectedLogDate}T12:00:00`).toISOString()
@@ -1236,12 +1216,10 @@ function OALogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void;
     setMobilityScore(1)
     setSelectedLogDate('')
     setBackdateOpen(false)
-    setSaving(false)
   }, [easOfRising, stairsNegotiated, jumpingAttempted, painMedGiven, mobilityScore, selectedLogDate, onSave])
 
   return (
     <CollapsibleLogForm
-      petName={petName}
       ctaLabel={`Log ${petName}'s mobility today →`}
       greetingHeader={`How did ${petName} move today?`}
       onSave={handleSave}
@@ -1332,7 +1310,7 @@ function OALogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void;
 
 // ── Epilepsy Log Form ─────────────────────────────────────────────────────
 
-function EpilepsyLogForm({ onSave, petName: _petName }: { onSave: (entry: CareLogEntry) => void; petName: string }) {
+function EpilepsyLogForm({ onSave }: { onSave: (entry: CareLogEntry) => void }) {
   const nowStr = () => {
     const now = new Date()
     now.setSeconds(0, 0)
@@ -1460,14 +1438,12 @@ function HyperthyroidismLogForm({ onSave, petName }: { onSave: (entry: CareLogEn
   const [yellowSkinOrGums, setYellowSkinOrGums] = useState(false)
   const [bleedingOrBruising, setBleedingOrBruising] = useState(false)
   const [notes, setNotes] = useState('')
-  const [saving, setSaving] = useState(false)
   const [backdateOpen, setBackdateOpen] = useState(false)
   const [selectedLogDate, setSelectedLogDate] = useState('')
 
   const handleSave = useCallback(() => {
     const vomitCount = parseInt(vomitingStr, 10)
     if (isNaN(vomitCount) || vomitCount < 0) return
-    setSaving(true)
     const entryDate = selectedLogDate || today()
     const entryTimestamp = selectedLogDate
       ? new Date(`${selectedLogDate}T12:00:00`).toISOString()
@@ -1499,12 +1475,10 @@ function HyperthyroidismLogForm({ onSave, petName }: { onSave: (entry: CareLogEn
     setNotes('')
     setSelectedLogDate('')
     setBackdateOpen(false)
-    setSaving(false)
   }, [medicationGiven, appetite, weightChange, vomitingStr, lethargyScore, facialScratching, yellowSkinOrGums, bleedingOrBruising, notes, selectedLogDate, onSave])
 
   return (
     <CollapsibleLogForm
-      petName={petName}
       ctaLabel={`Log today's check-in for ${petName} →`}
       greetingHeader={`How's ${petName} doing today?`}
       onSave={handleSave}
@@ -1640,14 +1614,12 @@ function IBDLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void
   const [dietCompliance, setDietCompliance] = useState(true)
   const [lethargyScore, setLethargyScore] = useState(1)
   const [notes, setNotes] = useState('')
-  const [saving, setSaving] = useState(false)
   const [backdateOpen, setBackdateOpen] = useState(false)
   const [selectedLogDate, setSelectedLogDate] = useState('')
 
   const handleSave = useCallback(() => {
     const vomitCount = parseInt(vomitingStr, 10)
     if (isNaN(vomitCount) || vomitCount < 0) return
-    setSaving(true)
     const entryDate = selectedLogDate || today()
     const entryTimestamp = selectedLogDate
       ? new Date(`${selectedLogDate}T12:00:00`).toISOString()
@@ -1675,12 +1647,10 @@ function IBDLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void
     setNotes('')
     setSelectedLogDate('')
     setBackdateOpen(false)
-    setSaving(false)
   }, [stoolConsistency, vomitingStr, appetite, weightChange, dietCompliance, lethargyScore, notes, selectedLogDate, onSave])
 
   return (
     <CollapsibleLogForm
-      petName={petName}
       ctaLabel={`Log today's check-in for ${petName} →`}
       greetingHeader={`How's ${petName}'s digestion today?`}
       onSave={handleSave}
@@ -1808,7 +1778,6 @@ function CDSLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void
   const [activityChanges, setActivityChanges] = useState<'normal' | 'less_active' | 'aimless_pacing'>('normal')
   const [anxiety, setAnxiety] = useState<'none' | 'mild' | 'significant'>('none')
   const [notes, setNotes] = useState('')
-  const [saving, setSaving] = useState(false)
   const [backdateOpen, setBackdateOpen] = useState(false)
   const [selectedLogDate, setSelectedLogDate] = useState('')
 
@@ -1820,7 +1789,6 @@ function CDSLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void
   const liveScore = computeDISHAAScore(previewEntry)
 
   const handleSave = useCallback(() => {
-    setSaving(true)
     const entryDate = selectedLogDate || today()
     const entryTimestamp = selectedLogDate
       ? new Date(`${selectedLogDate}T12:00:00`).toISOString()
@@ -1848,12 +1816,10 @@ function CDSLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void
     setNotes('')
     setSelectedLogDate('')
     setBackdateOpen(false)
-    setSaving(false)
   }, [disorientation, socialInteraction, sleepChanges, houseTraining, activityChanges, anxiety, notes, selectedLogDate, onSave])
 
   return (
     <CollapsibleLogForm
-      petName={petName}
       ctaLabel={`Log this week's check-in for ${petName} →`}
       greetingHeader={`How has ${petName} been this week?`}
       onSave={handleSave}
@@ -2011,12 +1977,10 @@ function DMLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void;
   const [forelimbStrength, setForelimbStrength] = useState<'normal' | 'mild_weakness' | 'significant_weakness'>('normal')
   const [rehabDoneToday, setRehabDoneToday] = useState(false)
   const [notes, setNotes] = useState('')
-  const [saving, setSaving] = useState(false)
   const [backdateOpen, setBackdateOpen] = useState(false)
   const [selectedLogDate, setSelectedLogDate] = useState('')
 
   const handleSave = useCallback(() => {
-    setSaving(true)
     const entryDate = selectedLogDate || today()
     const entryTimestamp = selectedLogDate
       ? new Date(`${selectedLogDate}T12:00:00`).toISOString()
@@ -2044,12 +2008,10 @@ function DMLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void;
     setNotes('')
     setSelectedLogDate('')
     setBackdateOpen(false)
-    setSaving(false)
   }, [hindLimbWalking, canRiseUnassisted, pawPlacement, continenceStatus, forelimbStrength, rehabDoneToday, notes, selectedLogDate, onSave])
 
   return (
     <CollapsibleLogForm
-      petName={petName}
       ctaLabel={`Log ${petName}'s weekly mobility check-in →`}
       greetingHeader={`How has ${petName} been moving this week?`}
       onSave={handleSave}
@@ -2400,7 +2362,7 @@ function Dashboard({
             </div>
             {showEpilepsyForm ? (
               <div>
-                <EpilepsyLogForm onSave={(e) => { onNewLog(e); setShowEpilepsyForm(false) }} petName={profile.name} />
+                <EpilepsyLogForm onSave={(e) => { onNewLog(e); setShowEpilepsyForm(false) }} />
                 <button onClick={() => setShowEpilepsyForm(false)}
                   className="mt-2 w-full text-xs text-stone-400 hover:text-stone-600 transition-colors py-2">
                   Cancel
