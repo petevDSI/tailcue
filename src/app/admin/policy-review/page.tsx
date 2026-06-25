@@ -241,17 +241,17 @@ export default function PolicyReviewPage() {
   }
 
   async function handleApprove(row: PolicyScrapeRow) {
-    const { error: insertError } = await supabase.from('carrier_policy_facts').insert({
+    const { error: insertError } = await supabase.from('carrier_policy_facts').upsert({
       carrier_id: row.carrier_id,
       policy_type: row.policy_type,
       facts: row.extracted_facts,
       source_url: row.source_url,
       last_verified_at: new Date().toISOString(),
       approved_scrape_id: row.id,
-    })
+    }, { onConflict: 'carrier_id,policy_type' })
 
     if (insertError) {
-      console.error('Insert carrier_policy_facts failed', insertError)
+      console.error('Upsert carrier_policy_facts failed', insertError)
       showToast('Error inserting facts — check console')
       return
     }
