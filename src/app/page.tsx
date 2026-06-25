@@ -124,6 +124,8 @@ export default function HomePage() {
 
       <Footer />
 
+      <p className="hidden">Impact-Site-Verification: c70378e1-1a47-4272-bc9c-111038e5d25c</p>
+
     </div>
   )
 }
