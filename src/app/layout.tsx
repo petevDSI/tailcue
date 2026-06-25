@@ -10,7 +10,10 @@ export const metadata: Metadata = {
   title: "Tailcue",
   description: "Smart tools for pet owners — vet pricing, insurance, and chronic care tracking",
   other: {
-    'impact-site-verification': 'aa7e31e1-a488-44ee-8798-4e75be2f21ce',
+    'impact-site-verification': [
+      'aa7e31e1-a488-44ee-8798-4e75be2f21ce',
+      'c70378e1-1a47-4272-bc9c-111038e5d25c',
+    ],
   },
 };
 
