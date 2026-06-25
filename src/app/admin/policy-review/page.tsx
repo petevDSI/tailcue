@@ -53,26 +53,6 @@ interface PolicyScrapeRow {
   policy_type: string
 }
 
-// Raw shape returned by Supabase nested join
-interface RawInsuranceCarrier {
-  id: string
-  display_name: string
-}
-
-interface RawPolicySources {
-  policy_type: string
-  source_url: string
-  insurance_carriers: RawInsuranceCarrier | null
-}
-
-interface RawScrapeRow {
-  id: string
-  scraped_at: string
-  extracted_facts: ExtractedFacts | null
-  diff_summary: Record<string, unknown> | null
-  carrier_policy_sources: RawPolicySources | null
-}
-
 // ── Constants ──────────────────────────────────────────────────────────────
 
 const CONFIDENCE_ORDER: Record<ExtractionConfidence, number> = { low: 0, medium: 1, high: 2 }
@@ -135,46 +115,74 @@ export default function PolicyReviewPage() {
     async function load() {
       setLoading(true)
 
-      const { data, error } = await supabase
+      // Query 1: fetch pending scrapes (flat)
+      const { data: scrapeData, error: scrapeError } = await supabase
         .from('carrier_policy_scrapes')
         .select(`
           id,
           scraped_at,
           extracted_facts,
           diff_summary,
-          carrier_policy_sources (
-            policy_type,
-            source_url,
-            insurance_carriers (
-              id,
-              display_name
-            )
-          )
+          source_id
         `)
         .eq('status', 'pending_review')
         .order('scraped_at', { ascending: false })
 
-      if (error || !data) {
-        console.error('Failed to load scrapes', error)
+      if (scrapeError || !scrapeData) {
+        console.error('Failed to load scrapes', scrapeError)
         setLoading(false)
         return
       }
 
-      const rows = data as unknown as RawScrapeRow[]
+      // Query 2: fetch all carrier_policy_sources
+      const { data: sourceData, error: sourceError } = await supabase
+        .from('carrier_policy_sources')
+        .select(`
+          id,
+          policy_type,
+          source_url,
+          carrier_id
+        `)
 
-      // Flatten and filter out rows with broken joins or missing facts
+      if (sourceError || !sourceData) {
+        console.error('Failed to load sources', sourceError)
+        setLoading(false)
+        return
+      }
+
+      // Query 3: fetch all insurance_carriers
+      const { data: carrierData, error: carrierError } = await supabase
+        .from('insurance_carriers')
+        .select(`
+          id,
+          display_name
+        `)
+
+      if (carrierError || !carrierData) {
+        console.error('Failed to load carriers', carrierError)
+        setLoading(false)
+        return
+      }
+
+      // Build lookup maps
+      const sourceMap = new Map(sourceData.map((s) => [s.id, s]))
+      const carrierMap = new Map(carrierData.map((c) => [c.id, c]))
+
+      // Flatten into PolicyScrapeRow[]
       const flat: PolicyScrapeRow[] = []
-      for (const r of rows) {
-        const src = r.carrier_policy_sources
-        const carrier = src?.insurance_carriers
-        if (!src || !carrier || !r.extracted_facts) continue
+      for (const r of scrapeData) {
+        if (!r.extracted_facts) continue
+        const src = sourceMap.get(r.source_id)
+        if (!src) continue
+        const carrier = carrierMap.get(src.carrier_id)
+        if (!carrier) continue
         flat.push({
           id: r.id,
           scraped_at: r.scraped_at,
-          extracted_facts: r.extracted_facts,
-          diff_summary: r.diff_summary ?? {},
+          extracted_facts: r.extracted_facts as ExtractedFacts,
+          diff_summary: (r.diff_summary as Record<string, unknown>) ?? {},
           source_url: src.source_url,
-          carrier_id: carrier.id,
+          carrier_id: src.carrier_id,
           carrier_name: carrier.display_name,
           policy_type: src.policy_type,
         })
