@@ -36,6 +36,8 @@ import { CareExportButton } from '@/components/care/CareExportButton'
 import { CareAccountControl } from '@/components/care/CareAccountControl'
 import { CareSyncNudge } from '@/components/care/CareSyncNudge'
 import { CareShareButton } from '@/components/care/CareShareButton'
+import { CarePetManageMenu } from '@/components/care/CarePetManageMenu'
+import { useCareAuth } from '@/components/care/CareAuthProvider'
 import Footer from '@/components/footer'
 
 const CHEWY_RESTOCK_URL = process.env.NEXT_PUBLIC_CHEWY_AFFILIATE_URL ?? 'https://www.chewy.com/pharmacy'
@@ -2168,6 +2170,8 @@ function Dashboard({
   onVialStarted: () => void
   onProfileUpdate: () => void
 }) {
+  const router = useRouter()
+  const { user } = useCareAuth()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [showEpilepsyForm, setShowEpilepsyForm] = useState(false)
@@ -2275,7 +2279,7 @@ function Dashboard({
         <span className="text-stone-200">|</span>
         {petCount >= 2 ? (
           <Link
-            href="/care"
+            href="/care?all=1"
             className="flex items-center gap-3 hover:opacity-70 transition-opacity"
             title="All pets"
           >
@@ -2287,6 +2291,14 @@ function Dashboard({
         <div className="ml-auto flex items-center gap-3">
           <CareAccountControl />
           <CareShareButton petId={petId} petName={profile.name} />
+          <CarePetManageMenu
+            petId={petId}
+            petName={profile.name}
+            memorialized={!!profile.memorializedAt}
+            isOwner={!profile.createdBy || profile.createdBy === user?.id}
+            onChanged={() => router.push('/care?all=1')}
+            onRemoved={() => router.push('/care')}
+          />
           <Link
             href="/care?setup=true"
             className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors"

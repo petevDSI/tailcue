@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
-  Cat, Dog, Plus, PawPrint, ChevronDown, ChevronUp, ArrowLeft, ArrowRight, Cloud,
+  Cat, Dog, Plus, PawPrint, ChevronDown, ChevronUp, ArrowLeft, Cloud,
 } from 'lucide-react'
 import {
   getAllPets, createPet,
@@ -22,6 +22,7 @@ import { useCareAuth } from '@/components/care/CareAuthProvider'
 import { CareAccountControl } from '@/components/care/CareAccountControl'
 import { CareSyncNudge } from '@/components/care/CareSyncNudge'
 import { CareJoinButton } from '@/components/care/CareJoinButton'
+import { CarePetManageMenu } from '@/components/care/CarePetManageMenu'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -386,49 +387,98 @@ function getPetRisk(record: PetRecord) {
   }
 }
 
-function PetCard({ record }: { record: PetRecord }) {
-  const { profile } = record
-  const risk = getPetRisk(record)
+function AngelWings({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M12 7c-1.6-2.6-4.2-4-6.7-4C4.1 3 3 4.1 3 6c0 3.1 3.1 5.2 6 5.6M12 7c1.6-2.6 4.2-4 6.7-4C19.9 3 21 4.1 21 6c0 3.1-3.1 5.2-6 5.6M12 7v9"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
 
-  const riskBadge = risk ? (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${risk.badgeColor}`}>
+function PetCard({
+  record,
+  memorialized,
+  isOwner,
+  onChanged,
+  onRemoved,
+}: {
+  record: PetRecord
+  memorialized: boolean
+  isOwner: boolean
+  onChanged: () => void
+  onRemoved: () => void
+}) {
+  const { profile } = record
+  const risk = memorialized ? null : getPetRisk(record)
+
+  const badge = memorialized ? (
+    <span className="px-2 py-0.5 rounded-full text-xs font-medium border bg-stone-100 text-stone-400 border-stone-200 flex items-center gap-1 shrink-0">
+      <AngelWings className="w-3.5 h-3.5" />
+      In memory
+    </span>
+  ) : risk ? (
+    <span className={`px-2 py-0.5 rounded-full text-xs font-medium border shrink-0 ${risk.badgeColor}`}>
       {risk.displayLabel ?? (risk.level.charAt(0).toUpperCase() + risk.level.slice(1))}
     </span>
   ) : (
-    <span className="px-2 py-0.5 rounded-full text-xs font-medium border bg-stone-100 text-stone-400 border-stone-200">
+    <span className="px-2 py-0.5 rounded-full text-xs font-medium border bg-stone-100 text-stone-400 border-stone-200 shrink-0">
       No readings yet
     </span>
   )
 
   return (
-    <Link
-      href={`/care/${profile.id}`}
-      className="bg-white rounded-xl border border-stone-200 p-4 flex items-center gap-3
-        hover:border-amber-200 hover:bg-amber-50/30 transition-colors"
+    <div
+      className={`bg-white rounded-xl border p-4 flex items-center gap-3 transition-colors ${
+        memorialized ? 'border-stone-200 opacity-70' : 'border-stone-200 hover:border-amber-200 hover:bg-amber-50/30'
+      }`}
     >
-      <SpeciesIcon species={profile.species} className="w-8 h-8 text-amber-500 shrink-0" />
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-stone-900">{profile.name}</p>
-        <p className="text-xs text-stone-400">{CONDITION_LABELS[profile.condition]}</p>
-      </div>
-      {riskBadge}
-      <ArrowRight className="w-4 h-4 text-stone-300 shrink-0" />
-    </Link>
+      <Link href={`/care/${profile.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+        <SpeciesIcon
+          species={profile.species}
+          className={`w-8 h-8 shrink-0 ${memorialized ? 'text-stone-300' : 'text-amber-500'}`}
+        />
+        <div className="flex-1 min-w-0">
+          <p className={`font-semibold ${memorialized ? 'text-stone-500' : 'text-stone-900'}`}>{profile.name}</p>
+          <p className="text-xs text-stone-400">{CONDITION_LABELS[profile.condition]}</p>
+        </div>
+        {badge}
+      </Link>
+      <CarePetManageMenu
+        petId={profile.id}
+        petName={profile.name}
+        memorialized={memorialized}
+        isOwner={isOwner}
+        onChanged={onChanged}
+        onRemoved={onRemoved}
+      />
+    </div>
   )
 }
 
 // ── Pet List Screen ───────────────────────────────────────────────────────
 
 function PetListScreen({
-  pets,
+  activePets,
+  memorialized,
+  currentUserId,
   onAddPet,
   authSlot,
   nudge,
+  onReload,
 }: {
-  pets: PetRecord[]
+  activePets: PetRecord[]
+  memorialized: PetRecord[]
+  currentUserId?: string
   onAddPet: () => void
   authSlot?: React.ReactNode
   nudge?: React.ReactNode
+  onReload: () => void
 }) {
   return (
     <div className="min-h-screen bg-[#FFFBF0] flex flex-col">
@@ -464,9 +514,36 @@ function PetListScreen({
 
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-3 pb-24 sm:pb-6">
         <p className="text-xs text-stone-400 mb-1">Your pets</p>
-        {pets.map((record) => (
-          <PetCard key={record.profile.id} record={record} />
-        ))}
+        {activePets.length === 0 ? (
+          <p className="text-sm text-stone-400 py-6 text-center">No active pets. Tap &ldquo;Add Pet&rdquo; to start tracking.</p>
+        ) : (
+          activePets.map((record) => (
+            <PetCard
+              key={record.profile.id}
+              record={record}
+              memorialized={false}
+              isOwner={!record.profile.createdBy || record.profile.createdBy === currentUserId}
+              onChanged={onReload}
+              onRemoved={onReload}
+            />
+          ))
+        )}
+
+        {memorialized.length > 0 && (
+          <div className="pt-6 space-y-3">
+            <p className="text-xs text-stone-400 mb-1">In Memory</p>
+            {memorialized.map((record) => (
+              <PetCard
+                key={record.profile.id}
+                record={record}
+                memorialized
+                isOwner={!record.profile.createdBy || record.profile.createdBy === currentUserId}
+                onChanged={onReload}
+                onRemoved={onReload}
+              />
+            ))}
+          </div>
+        )}
       </main>
 
       <Footer disclaimer="Tailcue Care is a logging tool to help you track your pet's condition at home. It does not provide medical advice or diagnoses. Always follow your veterinarian's guidance." />
@@ -485,16 +562,26 @@ function CareIndexInner() {
   const [showSetup, setShowSetup] = useState(false)
 
   const setupMode = searchParams.get('setup') === 'true'
+  const listMode = searchParams.get('all') === '1'
+
+  const activePets = pets.filter((p) => !p.profile.memorializedAt)
+  const memorializedPets = pets.filter((p) => p.profile.memorializedAt)
+  const shouldRedirect = activePets.length === 1 && !setupMode && !listMode
+
+  const reload = () => {
+    getAllPets().then(setPets)
+  }
 
   useEffect(() => {
     setMounted(true)
     getAllPets().then((allPets) => {
       setPets(allPets)
-      if (allPets.length === 1 && !setupMode) {
-        router.replace(`/care/${allPets[0].profile.id}`)
+      const active = allPets.filter((p) => !p.profile.memorializedAt)
+      if (active.length === 1 && !setupMode && !listMode) {
+        router.replace(`/care/${active[0].profile.id}`)
       }
     })
-  }, [router, setupMode, syncVersion])
+  }, [router, setupMode, listMode, syncVersion])
 
   // Arriving via an invite link (/care?join=CODE)
   useEffect(() => {
@@ -508,8 +595,8 @@ function CareIndexInner() {
 
   if (!mounted) return null
 
-  // Single pet with no setup param — transparent redirect, render nothing while navigating
-  if (pets.length === 1 && !setupMode) return null
+  // Single active pet (and not deliberately viewing the full list) — transparent redirect
+  if (shouldRedirect) return null
 
   async function handleSave(
     name: string,
@@ -537,16 +624,19 @@ function CareIndexInner() {
     ? () => setShowSetup(false)
     : undefined
 
-  if (pets.length === 0 || showSetup || setupMode) {
+  if ((activePets.length === 0 && memorializedPets.length === 0) || showSetup || setupMode) {
     return <SetupScreen onSave={handleSave} onBack={onBack} />
   }
 
   return (
     <PetListScreen
-      pets={pets}
+      activePets={activePets}
+      memorialized={memorializedPets}
+      currentUserId={user?.id}
       onAddPet={() => setShowSetup(true)}
       authSlot={<CareAccountControl />}
       nudge={<CareSyncNudge />}
+      onReload={reload}
     />
   )
 }

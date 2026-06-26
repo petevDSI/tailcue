@@ -4,6 +4,8 @@ export interface PetProfile {
   species: 'cat' | 'dog'
   condition: 'feline_diabetes' | 'chf' | 'chronic_kidney_disease' | 'cushings_disease' | 'osteoarthritis' | 'epilepsy' | 'feline_hyperthyroidism' | 'ibd' | 'cognitive_dysfunction' | 'degenerative_myelopathy'
   createdAt: string
+  memorializedAt?: string | null
+  createdBy?: string
   // feline_diabetes fields
   insulinConcentration?: 'U-40' | 'U-100'
   vialSizeML?: number
@@ -136,6 +138,7 @@ import {
   getAllPetsRemote, getPetRemote, createPetRemote, saveProfileRemote,
   addLogEntryRemote, deleteLogEntryRemote, startNewVialRemote,
   updateInsulinDefaultsRemote, updateCHFBaselineRemote, deletePetRemote,
+  memorializePetRemote, restorePetRemote,
 } from './care-storage-remote'
 
 interface PetStore {
@@ -259,6 +262,24 @@ function deletePetLocal(petId: string): void {
   write(store)
 }
 
+function memorializePetLocal(petId: string): void {
+  const store = read()
+  const rec = store.pets[petId]
+  if (rec) {
+    rec.profile.memorializedAt = new Date().toISOString()
+    write(store)
+  }
+}
+
+function restorePetLocal(petId: string): void {
+  const store = read()
+  const rec = store.pets[petId]
+  if (rec) {
+    rec.profile.memorializedAt = null
+    write(store)
+  }
+}
+
 async function isAuthed(): Promise<boolean> {
   if (typeof window === 'undefined') return false
   const supabase = getSupabaseBrowser()
@@ -304,6 +325,14 @@ export async function updateCHFBaseline(petId: string, baselineSRR: number): Pro
 
 export async function deletePet(petId: string): Promise<void> {
   return (await isAuthed()) ? deletePetRemote(petId) : deletePetLocal(petId)
+}
+
+export async function memorializePet(petId: string): Promise<void> {
+  return (await isAuthed()) ? memorializePetRemote(petId) : memorializePetLocal(petId)
+}
+
+export async function restorePet(petId: string): Promise<void> {
+  return (await isAuthed()) ? restorePetRemote(petId) : restorePetLocal(petId)
 }
 
 export {

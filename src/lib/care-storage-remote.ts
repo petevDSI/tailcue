@@ -14,6 +14,8 @@ interface CarePetRow {
   species: string
   condition: string
   created_at: string
+  created_by: string
+  memorialized_at: string | null
   setup_data: SetupData | null
 }
 
@@ -32,6 +34,8 @@ function rowToProfile(row: CarePetRow): PetProfile {
     species: row.species as PetProfile['species'],
     condition: row.condition as PetProfile['condition'],
     createdAt: row.created_at,
+    createdBy: row.created_by,
+    memorializedAt: row.memorialized_at ?? null,
     ...(setup.insulinConcentration !== undefined && { insulinConcentration: setup.insulinConcentration }),
     ...(setup.vialSizeML !== undefined && { vialSizeML: setup.vialSizeML }),
     ...(setup.chfBaselineSRR !== undefined && { chfBaselineSRR: setup.chfBaselineSRR }),
@@ -166,7 +170,29 @@ export async function updateCHFBaselineRemote(petId: string, baselineSRR: number
 
 export async function deletePetRemote(petId: string): Promise<void> {
   const supabase = getSupabaseBrowser()
-  await supabase.from('care_pets').delete().eq('id', petId)
+  const { data, error } = await supabase.from('care_pets').delete().eq('id', petId).select('id')
+  if (error) throw new Error(error.message)
+  if (!data || data.length === 0) {
+    throw new Error("Only the pet's owner can remove a pet.")
+  }
+}
+
+export async function memorializePetRemote(petId: string): Promise<void> {
+  const supabase = getSupabaseBrowser()
+  const { error } = await supabase
+    .from('care_pets')
+    .update({ memorialized_at: new Date().toISOString() })
+    .eq('id', petId)
+  if (error) throw new Error(error.message)
+}
+
+export async function restorePetRemote(petId: string): Promise<void> {
+  const supabase = getSupabaseBrowser()
+  const { error } = await supabase
+    .from('care_pets')
+    .update({ memorialized_at: null })
+    .eq('id', petId)
+  if (error) throw new Error(error.message)
 }
 
 // ── Invite sharing ─────────────────────────────────────────────────────────

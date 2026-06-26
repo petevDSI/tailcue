@@ -49,6 +49,7 @@ export async function migrateLocalToRemote(): Promise<number> {
       species: p.species,
       condition: p.condition,
       created_at: p.createdAt,
+      memorialized_at: p.memorializedAt ?? null,
       setup_data: setup,
       created_by: user.id,
     })
