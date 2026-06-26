@@ -5,6 +5,7 @@ import type { User, Session, AuthChangeEvent } from '@supabase/supabase-js'
 import { getSupabaseBrowser } from '@/lib/supabase-browser'
 import { migrateLocalToRemote } from '@/lib/care-migrate'
 import { CareSignIn } from './CareSignIn'
+import { CareJoinModal } from './CareJoinModal'
 
 interface CareAuthContextValue {
   user: User | null
@@ -14,6 +15,9 @@ interface CareAuthContextValue {
   signInOpen: boolean
   openSignIn: () => void
   closeSignIn: () => void
+  joinOpen: boolean
+  openJoin: () => void
+  closeJoin: () => void
   signInWithGoogle: () => Promise<void>
   signInWithMagicLink: (email: string) => Promise<void>
   signOut: () => Promise<void>
@@ -53,6 +57,7 @@ export function CareAuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [syncVersion, setSyncVersion] = useState(0)
   const [signInOpen, setSignInOpen] = useState(false)
+  const [joinOpen, setJoinOpen] = useState(false)
 
   const bumpSync = useCallback(() => setSyncVersion((v) => v + 1), [])
 
@@ -87,6 +92,8 @@ export function CareAuthProvider({ children }: { children: React.ReactNode }) {
 
   const openSignIn = useCallback(() => setSignInOpen(true), [])
   const closeSignIn = useCallback(() => setSignInOpen(false), [])
+  const openJoin = useCallback(() => setJoinOpen(true), [])
+  const closeJoin = useCallback(() => setJoinOpen(false), [])
 
   const signInWithGoogle = useCallback(async () => {
     const supabase = getSupabaseBrowser()
@@ -119,6 +126,9 @@ export function CareAuthProvider({ children }: { children: React.ReactNode }) {
         signInOpen,
         openSignIn,
         closeSignIn,
+        joinOpen,
+        openJoin,
+        closeJoin,
         signInWithGoogle,
         signInWithMagicLink,
         signOut,
@@ -128,6 +138,11 @@ export function CareAuthProvider({ children }: { children: React.ReactNode }) {
       {signInOpen && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <CareSignIn onDismiss={closeSignIn} />
+        </div>
+      )}
+      {joinOpen && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <CareJoinModal onDismiss={closeJoin} />
         </div>
       )}
     </CareAuthContext.Provider>

@@ -35,6 +35,7 @@ import { estimateInsulinSupply } from '@/lib/care-supply-estimator'
 import { CareExportButton } from '@/components/care/CareExportButton'
 import { CareAccountControl } from '@/components/care/CareAccountControl'
 import { CareSyncNudge } from '@/components/care/CareSyncNudge'
+import { CareShareButton } from '@/components/care/CareShareButton'
 import Footer from '@/components/footer'
 
 const CHEWY_RESTOCK_URL = process.env.NEXT_PUBLIC_CHEWY_AFFILIATE_URL ?? 'https://www.chewy.com/pharmacy'
@@ -2285,6 +2286,7 @@ function Dashboard({
         )}
         <div className="ml-auto flex items-center gap-3">
           <CareAccountControl />
+          <CareShareButton petId={petId} petName={profile.name} />
           <Link
             href="/care?setup=true"
             className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors"

@@ -21,6 +21,7 @@ import Footer from '@/components/footer'
 import { useCareAuth } from '@/components/care/CareAuthProvider'
 import { CareAccountControl } from '@/components/care/CareAccountControl'
 import { CareSyncNudge } from '@/components/care/CareSyncNudge'
+import { CareJoinButton } from '@/components/care/CareJoinButton'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -178,6 +179,9 @@ function SetupScreen({
             Already have pets saved? Sign in
           </button>
         )}
+        <div className="mb-6 text-center">
+          <CareJoinButton className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-700 transition-colors" />
+        </div>
         {onBack && (
           <button
             type="button"
@@ -443,6 +447,7 @@ function PetListScreen({
         </div>
         <div className="ml-auto flex items-center gap-3">
           {authSlot}
+          <CareJoinButton />
           <button
             type="button"
             onClick={onAddPet}

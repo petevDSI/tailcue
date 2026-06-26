@@ -168,3 +168,85 @@ export async function deletePetRemote(petId: string): Promise<void> {
   const supabase = getSupabaseBrowser()
   await supabase.from('care_pets').delete().eq('id', petId)
 }
+
+// ── Invite sharing ─────────────────────────────────────────────────────────
+
+export interface InviteRow {
+  id: string
+  code: string
+  expiresAt: string
+  usedBy: string | null
+}
+
+// Unambiguous alphabet: no I, L, O, 0, 1
+const INVITE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+
+function genInviteCode(): string {
+  const rnd = crypto.getRandomValues(new Uint32Array(6))
+  let s = ''
+  for (let i = 0; i < 6; i++) s += INVITE_ALPHABET[rnd[i] % INVITE_ALPHABET.length]
+  return s
+}
+
+export async function createInvite(
+  petId: string,
+  ttlHours = 48
+): Promise<{ code: string; expiresAt: string }> {
+  const supabase = getSupabaseBrowser()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('You need to be signed in to share a pet.')
+
+  const expiresAt = new Date(Date.now() + ttlHours * 3600 * 1000).toISOString()
+
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = genInviteCode()
+    const { error } = await supabase.from('care_pet_invites').insert({
+      pet_id: petId,
+      code,
+      created_by: user.id,
+      expires_at: expiresAt,
+    })
+    if (!error) return { code, expiresAt }
+    if (error.code !== '23505') {
+      throw new Error(
+        error.code === '42501'
+          ? "Only the pet's owner can create invite links."
+          : error.message
+      )
+    }
+    // 23505 = unique-code collision → loop and try another code
+  }
+  throw new Error('Could not generate a unique code. Please try again.')
+}
+
+export async function listInvites(petId: string): Promise<InviteRow[]> {
+  const supabase = getSupabaseBrowser()
+  const { data, error } = await supabase
+    .from('care_pet_invites')
+    .select('id, code, expires_at, used_by')
+    .eq('pet_id', petId)
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    id: r.id as string,
+    code: r.code as string,
+    expiresAt: r.expires_at as string,
+    usedBy: (r.used_by as string | null) ?? null,
+  }))
+}
+
+export async function revokeInvite(inviteId: string): Promise<void> {
+  const supabase = getSupabaseBrowser()
+  await supabase.from('care_pet_invites').delete().eq('id', inviteId)
+}
+
+export async function redeemInvite(code: string): Promise<{ petId: string | null; status: string }> {
+  const supabase = getSupabaseBrowser()
+  const { data, error } = await supabase.rpc('redeem_invite', { p_code: code.trim().toUpperCase() })
+  if (error) throw new Error(error.message)
+  const row = Array.isArray(data) ? data[0] : data
+  return {
+    petId: (row?.pet_id as string | null) ?? null,
+    status: (row?.status as string) ?? 'invalid',
+  }
+}

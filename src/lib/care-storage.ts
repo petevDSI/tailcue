@@ -305,3 +305,11 @@ export async function updateCHFBaseline(petId: string, baselineSRR: number): Pro
 export async function deletePet(petId: string): Promise<void> {
   return (await isAuthed()) ? deletePetRemote(petId) : deletePetLocal(petId)
 }
+
+export {
+  createInvite,
+  listInvites,
+  revokeInvite,
+  redeemInvite,
+} from './care-storage-remote'
+export type { InviteRow } from './care-storage-remote'
