@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
-  Cat, Dog, Plus, PawPrint, ChevronDown, ChevronUp, ArrowLeft, ArrowRight,
+  Cat, Dog, Plus, PawPrint, ChevronDown, ChevronUp, ArrowLeft, ArrowRight, Cloud,
 } from 'lucide-react'
 import {
   getAllPets, createPet,
@@ -111,6 +111,7 @@ function SetupScreen({
   ) => void
   onBack?: () => void
 }) {
+  const { user, signOut, openSignIn } = useCareAuth()
   const [species, setSpecies] = useState<'cat' | 'dog'>('cat')
   const [condition, setCondition] = useState<Condition>('feline_diabetes')
   const [name, setName] = useState('')
@@ -156,6 +157,27 @@ function SetupScreen({
   return (
     <div className="min-h-screen bg-[#FFFBF0] flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm">
+        {user ? (
+          <div className="flex items-center justify-end gap-2 mb-4">
+            <span className="text-xs text-stone-400 hidden sm:block">{user.email}</span>
+            <button
+              type="button"
+              onClick={() => signOut()}
+              className="text-xs text-stone-500 hover:text-stone-700 transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={openSignIn}
+            className="w-full mb-6 flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm py-2.5 transition-colors"
+          >
+            <Cloud className="w-4 h-4" />
+            Already have pets saved? Sign in
+          </button>
+        )}
         {onBack && (
           <button
             type="button"
