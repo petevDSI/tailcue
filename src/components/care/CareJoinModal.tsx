@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { redeemInvite } from '@/lib/care-storage'
 
 const STATUS_MESSAGES: Record<string, string> = {
@@ -13,7 +13,8 @@ const STATUS_MESSAGES: Record<string, string> = {
 
 export function CareJoinModal({ onDismiss }: { onDismiss: () => void }) {
   const router = useRouter()
-  const [code, setCode] = useState('')
+  const searchParams = useSearchParams()
+  const [code, setCode] = useState((searchParams.get('join') ?? '').toUpperCase())
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

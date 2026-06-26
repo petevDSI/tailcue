@@ -479,7 +479,7 @@ function PetListScreen({
 function CareIndexInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { syncVersion } = useCareAuth()
+  const { syncVersion, user, openJoin, openSignIn } = useCareAuth()
   const [mounted, setMounted] = useState(false)
   const [pets, setPets] = useState<PetRecord[]>([])
   const [showSetup, setShowSetup] = useState(false)
@@ -495,6 +495,16 @@ function CareIndexInner() {
       }
     })
   }, [router, setupMode, syncVersion])
+
+  // Arriving via an invite link (/care?join=CODE)
+  useEffect(() => {
+    if (!searchParams.get('join')) return
+    if (user) {
+      openJoin()
+    } else {
+      openSignIn()
+    }
+  }, [user, searchParams, openJoin, openSignIn])
 
   if (!mounted) return null
 
