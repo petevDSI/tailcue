@@ -79,13 +79,6 @@ export async function getPetRemote(petId: string): Promise<PetRecord | null> {
 export async function createPetRemote(profile: Omit<PetProfile, 'id'>): Promise<PetRecord> {
   const supabase = getSupabaseBrowser()
 
-  const { data: sessionData } = await supabase.auth.getSession()
-  console.log('[CARE DIAG] getSession before insert:', {
-    hasSession: !!sessionData.session,
-    userId: sessionData.session?.user?.id ?? null,
-    accessTokenPresent: !!sessionData.session?.access_token,
-  })
-
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
@@ -103,7 +96,7 @@ export async function createPetRemote(profile: Omit<PetProfile, 'id'>): Promise<
       species: profile.species,
       condition: profile.condition,
       created_at: profile.createdAt,
-      setup_data: Object.keys(setup).length > 0 ? setup : null,
+      setup_data: setup, // always an object; {} when empty. Column is NOT NULL.
       created_by: user.id,
     })
     .select()
