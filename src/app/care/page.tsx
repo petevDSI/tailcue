@@ -19,7 +19,8 @@ import {
 } from '@/lib/care-risk-engine'
 import Footer from '@/components/footer'
 import { useCareAuth } from '@/components/care/CareAuthProvider'
-import { CareSignIn } from '@/components/care/CareSignIn'
+import { CareAccountControl } from '@/components/care/CareAccountControl'
+import { CareSyncNudge } from '@/components/care/CareSyncNudge'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -396,10 +397,12 @@ function PetListScreen({
   pets,
   onAddPet,
   authSlot,
+  nudge,
 }: {
   pets: PetRecord[]
   onAddPet: () => void
   authSlot?: React.ReactNode
+  nudge?: React.ReactNode
 }) {
   return (
     <div className="min-h-screen bg-[#FFFBF0] flex flex-col">
@@ -430,6 +433,8 @@ function PetListScreen({
         </div>
       </header>
 
+      {nudge}
+
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-3 pb-24 sm:pb-6">
         <p className="text-xs text-stone-400 mb-1">Your pets</p>
         {pets.map((record) => (
@@ -447,11 +452,10 @@ function PetListScreen({
 function CareIndexInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user, signOut } = useCareAuth()
+  const { syncVersion } = useCareAuth()
   const [mounted, setMounted] = useState(false)
   const [pets, setPets] = useState<PetRecord[]>([])
   const [showSetup, setShowSetup] = useState(false)
-  const [showSignIn, setShowSignIn] = useState(false)
 
   const setupMode = searchParams.get('setup') === 'true'
 
@@ -463,7 +467,7 @@ function CareIndexInner() {
         router.replace(`/care/${allPets[0].profile.id}`)
       }
     })
-  }, [router, setupMode])
+  }, [router, setupMode, syncVersion])
 
   if (!mounted) return null
 
@@ -500,36 +504,13 @@ function CareIndexInner() {
     return <SetupScreen onSave={handleSave} onBack={onBack} />
   }
 
-  const authSlot = user ? (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-stone-400 hidden sm:block">{user.email}</span>
-      <button
-        type="button"
-        onClick={() => signOut()}
-        className="text-xs text-stone-500 hover:text-stone-700 transition-colors"
-      >
-        Sign out
-      </button>
-    </div>
-  ) : (
-    <button
-      type="button"
-      onClick={() => setShowSignIn(true)}
-      className="text-xs text-amber-600 hover:text-amber-700 font-semibold transition-colors"
-    >
-      Sign in to sync
-    </button>
-  )
-
   return (
-    <>
-      <PetListScreen pets={pets} onAddPet={() => setShowSetup(true)} authSlot={authSlot} />
-      {showSignIn && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <CareSignIn onDismiss={() => setShowSignIn(false)} />
-        </div>
-      )}
-    </>
+    <PetListScreen
+      pets={pets}
+      onAddPet={() => setShowSetup(true)}
+      authSlot={<CareAccountControl />}
+      nudge={<CareSyncNudge />}
+    />
   )
 }
 

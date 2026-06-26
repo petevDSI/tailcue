@@ -3,17 +3,25 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import type { User, Session, AuthChangeEvent } from '@supabase/supabase-js'
 import { getSupabaseBrowser } from '@/lib/supabase-browser'
+import { migrateLocalToRemote } from '@/lib/care-migrate'
+import { CareSignIn } from './CareSignIn'
 
 interface CareAuthContextValue {
   user: User | null
   session: Session | null
   loading: boolean
+  syncVersion: number
+  signInOpen: boolean
+  openSignIn: () => void
+  closeSignIn: () => void
   signInWithGoogle: () => Promise<void>
   signInWithMagicLink: (email: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
 const CareAuthContext = createContext<CareAuthContextValue | null>(null)
+
+let migrationAttempted = false
 
 async function upsertCareUser(user: User) {
   const supabase = getSupabaseBrowser()
@@ -27,19 +35,38 @@ async function upsertCareUser(user: User) {
   )
 }
 
+async function runMigrationOnce(bump: () => void) {
+  if (migrationAttempted) return
+  migrationAttempted = true
+  try {
+    const n = await migrateLocalToRemote()
+    if (n > 0) bump()
+  } catch (e) {
+    console.error('Care migration failed', e)
+    migrationAttempted = false
+  }
+}
+
 export function CareAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [syncVersion, setSyncVersion] = useState(0)
+  const [signInOpen, setSignInOpen] = useState(false)
+
+  const bumpSync = useCallback(() => setSyncVersion((v) => v + 1), [])
 
   useEffect(() => {
     const supabase = getSupabaseBrowser()
 
-    supabase.auth.getSession().then(({ data: { session: s } }: { data: { session: Session | null } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: s } }: { data: { session: Session | null } }) => {
       setSession(s)
       setUser(s?.user ?? null)
+      if (s?.user) {
+        await upsertCareUser(s.user)
+        await runMigrationOnce(bumpSync)
+      }
       setLoading(false)
-      if (s?.user) upsertCareUser(s.user)
     })
 
     const {
@@ -47,11 +74,19 @@ export function CareAuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, s: Session | null) => {
       setSession(s)
       setUser(s?.user ?? null)
-      if (s?.user) upsertCareUser(s.user)
+      if (s?.user) {
+        upsertCareUser(s.user)
+        runMigrationOnce(bumpSync)
+        setSignInOpen(false)
+      }
+      bumpSync()
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [bumpSync])
+
+  const openSignIn = useCallback(() => setSignInOpen(true), [])
+  const closeSignIn = useCallback(() => setSignInOpen(false), [])
 
   const signInWithGoogle = useCallback(async () => {
     const supabase = getSupabaseBrowser()
@@ -75,8 +110,26 @@ export function CareAuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <CareAuthContext.Provider value={{ user, session, loading, signInWithGoogle, signInWithMagicLink, signOut }}>
+    <CareAuthContext.Provider
+      value={{
+        user,
+        session,
+        loading,
+        syncVersion,
+        signInOpen,
+        openSignIn,
+        closeSignIn,
+        signInWithGoogle,
+        signInWithMagicLink,
+        signOut,
+      }}
+    >
       {children}
+      {signInOpen && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <CareSignIn onDismiss={closeSignIn} />
+        </div>
+      )}
     </CareAuthContext.Provider>
   )
 }

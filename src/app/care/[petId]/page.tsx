@@ -33,6 +33,8 @@ import {
 } from '@/lib/care-risk-engine'
 import { estimateInsulinSupply } from '@/lib/care-supply-estimator'
 import { CareExportButton } from '@/components/care/CareExportButton'
+import { CareAccountControl } from '@/components/care/CareAccountControl'
+import { CareSyncNudge } from '@/components/care/CareSyncNudge'
 import Footer from '@/components/footer'
 
 const CHEWY_RESTOCK_URL = process.env.NEXT_PUBLIC_CHEWY_AFFILIATE_URL ?? 'https://www.chewy.com/pharmacy'
@@ -2282,6 +2284,7 @@ function Dashboard({
           <div className="flex items-center gap-3">{nameAndIcon}</div>
         )}
         <div className="ml-auto flex items-center gap-3">
+          <CareAccountControl />
           <Link
             href="/care?setup=true"
             className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors"
@@ -2301,6 +2304,8 @@ function Dashboard({
         )}
         </div>
       </header>
+
+      <CareSyncNudge />
 
       {settingsOpen && hasSettings && (
         isCHF ? (

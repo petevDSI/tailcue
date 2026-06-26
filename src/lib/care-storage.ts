@@ -168,8 +168,21 @@ function write(store: PetStore): void {
   }
 }
 
-function getAllPetsLocal(): PetRecord[] {
+export function getAllPetsLocal(): PetRecord[] {
   return Object.values(read().pets)
+}
+
+export function getLocalEntryCount(): number {
+  return getAllPetsLocal().reduce((sum, p) => sum + p.logs.length, 0)
+}
+
+export function clearLocalStore(): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // ignore
+  }
 }
 
 function getPetLocal(petId: string): PetRecord | null {
