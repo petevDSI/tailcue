@@ -924,13 +924,14 @@ export default function PetHistoryPage() {
 
   useEffect(() => {
     setMounted(true)
-    const record = getPet(petId)
-    if (!record) {
-      router.replace('/care')
-      return
-    }
-    setProfile(record.profile)
-    setLogs(record.logs)
+    getPet(petId).then((record) => {
+      if (!record) {
+        router.replace('/care')
+        return
+      }
+      setProfile(record.profile)
+      setLogs(record.logs)
+    })
   }, [petId, router])
 
   if (!mounted) return null
@@ -938,9 +939,9 @@ export default function PetHistoryPage() {
   if (!profile) return null
 
   function handleDelete(id: string) {
-    deleteLogEntry(petId, id)
     setLogs((prev) => prev.filter((l) => l.id !== id))
     setPendingDeleteId(null)
+    deleteLogEntry(petId, id)
   }
 
   const condition = profile.condition

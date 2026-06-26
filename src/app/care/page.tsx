@@ -18,6 +18,8 @@ import {
   evaluateHyperthyroidismRisk, evaluateIBDRisk, evaluateCDSRisk, evaluateDMRisk,
 } from '@/lib/care-risk-engine'
 import Footer from '@/components/footer'
+import { useCareAuth } from '@/components/care/CareAuthProvider'
+import { CareSignIn } from '@/components/care/CareSignIn'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -390,7 +392,15 @@ function PetCard({ record }: { record: PetRecord }) {
 
 // ── Pet List Screen ───────────────────────────────────────────────────────
 
-function PetListScreen({ pets, onAddPet }: { pets: PetRecord[]; onAddPet: () => void }) {
+function PetListScreen({
+  pets,
+  onAddPet,
+  authSlot,
+}: {
+  pets: PetRecord[]
+  onAddPet: () => void
+  authSlot?: React.ReactNode
+}) {
   return (
     <div className="min-h-screen bg-[#FFFBF0] flex flex-col">
       <header className="bg-white border-b border-stone-200 px-4 py-3 flex items-center gap-3">
@@ -406,15 +416,18 @@ function PetListScreen({ pets, onAddPet }: { pets: PetRecord[]; onAddPet: () => 
           <PawPrint className="w-5 h-5 text-amber-500" />
           <span className="font-semibold text-stone-800">Tailcue Care</span>
         </div>
-        <button
-          type="button"
-          onClick={onAddPet}
-          className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-amber-600 hover:text-amber-700
-            border border-amber-200 hover:border-amber-300 bg-white rounded-xl px-3 py-1.5 transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Add Pet
-        </button>
+        <div className="ml-auto flex items-center gap-3">
+          {authSlot}
+          <button
+            type="button"
+            onClick={onAddPet}
+            className="flex items-center gap-1.5 text-xs font-semibold text-amber-600 hover:text-amber-700
+              border border-amber-200 hover:border-amber-300 bg-white rounded-xl px-3 py-1.5 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add Pet
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-3 pb-24 sm:pb-6">
@@ -434,19 +447,22 @@ function PetListScreen({ pets, onAddPet }: { pets: PetRecord[]; onAddPet: () => 
 function CareIndexInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { user, signOut } = useCareAuth()
   const [mounted, setMounted] = useState(false)
   const [pets, setPets] = useState<PetRecord[]>([])
   const [showSetup, setShowSetup] = useState(false)
+  const [showSignIn, setShowSignIn] = useState(false)
 
   const setupMode = searchParams.get('setup') === 'true'
 
   useEffect(() => {
     setMounted(true)
-    const allPets = getAllPets()
-    setPets(allPets)
-    if (allPets.length === 1 && !setupMode) {
-      router.replace(`/care/${allPets[0].profile.id}`)
-    }
+    getAllPets().then((allPets) => {
+      setPets(allPets)
+      if (allPets.length === 1 && !setupMode) {
+        router.replace(`/care/${allPets[0].profile.id}`)
+      }
+    })
   }, [router, setupMode])
 
   if (!mounted) return null
@@ -454,7 +470,7 @@ function CareIndexInner() {
   // Single pet with no setup param — transparent redirect, render nothing while navigating
   if (pets.length === 1 && !setupMode) return null
 
-  function handleSave(
+  async function handleSave(
     name: string,
     species: 'cat' | 'dog',
     condition: Condition,
@@ -462,7 +478,7 @@ function CareIndexInner() {
     vialSizeML?: number,
     baselineSRR?: number
   ) {
-    const record = createPet({
+    const record = await createPet({
       name,
       species,
       condition,
@@ -484,7 +500,37 @@ function CareIndexInner() {
     return <SetupScreen onSave={handleSave} onBack={onBack} />
   }
 
-  return <PetListScreen pets={pets} onAddPet={() => setShowSetup(true)} />
+  const authSlot = user ? (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-stone-400 hidden sm:block">{user.email}</span>
+      <button
+        type="button"
+        onClick={() => signOut()}
+        className="text-xs text-stone-500 hover:text-stone-700 transition-colors"
+      >
+        Sign out
+      </button>
+    </div>
+  ) : (
+    <button
+      type="button"
+      onClick={() => setShowSignIn(true)}
+      className="text-xs text-amber-600 hover:text-amber-700 font-semibold transition-colors"
+    >
+      Sign in to sync
+    </button>
+  )
+
+  return (
+    <>
+      <PetListScreen pets={pets} onAddPet={() => setShowSetup(true)} authSlot={authSlot} />
+      {showSignIn && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <CareSignIn onDismiss={() => setShowSignIn(false)} />
+        </div>
+      )}
+    </>
+  )
 }
 
 export default function CareIndexPage() {

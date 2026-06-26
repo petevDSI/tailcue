@@ -145,10 +145,10 @@ function DiabetesSettingsPanel({
   )
   const [vialSizeMlStr, setVialSizeMlStr] = useState(String(profile.vialSizeML ?? 10))
 
-  function handleSave() {
+  async function handleSave() {
     const ml = parseFloat(vialSizeMlStr)
     if (isNaN(ml) || ml <= 0) return
-    updateInsulinDefaults(petId, concentration, ml)
+    await updateInsulinDefaults(petId, concentration, ml)
     onSave()
   }
 
@@ -228,10 +228,10 @@ function CHFSettingsPanel({
     profile.chfBaselineSRR != null ? String(profile.chfBaselineSRR) : ''
   )
 
-  function handleSave() {
+  async function handleSave() {
     const srr = parseFloat(baselineSRRStr)
     if (isNaN(srr) || srr <= 0) return
-    updateCHFBaseline(petId, srr)
+    await updateCHFBaseline(petId, srr)
     onSave()
   }
 
@@ -414,12 +414,12 @@ function SupplyCard({
   const [showForm, setShowForm] = useState(false)
   const supply = estimateInsulinSupply(logs, currentVial)
 
-  function handleVialConfirmed(
+  async function handleVialConfirmed(
     concentration: 'U-40' | 'U-100',
     vialSizeML: number,
     unitsAlreadyUsedAtStart: number
   ) {
-    startNewVial(petId, {
+    await startNewVial(petId, {
       startedAt: new Date().toISOString(),
       concentration,
       vialSizeML,
@@ -2773,13 +2773,14 @@ export default function PetDashboardPage() {
 
   useEffect(() => {
     setMounted(true)
-    const r = getPet(petId)
-    if (!r) {
-      router.replace('/care')
-      return
-    }
-    setRecord(r)
-    setPetCount(getAllPets().length)
+    getPet(petId).then((r) => {
+      if (!r) {
+        router.replace('/care')
+        return
+      }
+      setRecord(r)
+    })
+    getAllPets().then((all) => setPetCount(all.length))
   }, [petId, router])
 
   if (!mounted || !record) return null
@@ -2792,20 +2793,18 @@ export default function PetDashboardPage() {
       logs={record.logs}
       currentVial={record.currentVial}
       onNewLog={(entry) => {
-        addLogEntry(petId, entry)
         setRecord((prev) => prev ? { ...prev, logs: [entry, ...prev.logs] } : prev)
+        addLogEntry(petId, entry)
       }}
       onDeleteLog={(id) => {
-        deleteLogEntry(petId, id)
         setRecord((prev) => prev ? { ...prev, logs: prev.logs.filter((l) => l.id !== id) } : prev)
+        deleteLogEntry(petId, id)
       }}
       onVialStarted={() => {
-        const r = getPet(petId)
-        if (r) setRecord(r)
+        getPet(petId).then((r) => { if (r) setRecord(r) })
       }}
       onProfileUpdate={() => {
-        const r = getPet(petId)
-        if (r) setRecord(r)
+        getPet(petId).then((r) => { if (r) setRecord(r) })
       }}
     />
   )

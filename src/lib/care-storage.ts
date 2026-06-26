@@ -131,6 +131,13 @@ export interface PetRecord {
   currentVial: CurrentVial | null
 }
 
+import { getSupabaseBrowser } from './supabase-browser'
+import {
+  getAllPetsRemote, getPetRemote, createPetRemote, saveProfileRemote,
+  addLogEntryRemote, deleteLogEntryRemote, startNewVialRemote,
+  updateInsulinDefaultsRemote, updateCHFBaselineRemote, deletePetRemote,
+} from './care-storage-remote'
+
 interface PetStore {
   pets: Record<string, PetRecord>
 }
@@ -161,15 +168,15 @@ function write(store: PetStore): void {
   }
 }
 
-export function getAllPets(): PetRecord[] {
+function getAllPetsLocal(): PetRecord[] {
   return Object.values(read().pets)
 }
 
-export function getPet(petId: string): PetRecord | null {
+function getPetLocal(petId: string): PetRecord | null {
   return read().pets[petId] ?? null
 }
 
-export function createPet(profile: Omit<PetProfile, 'id'>): PetRecord {
+function createPetLocal(profile: Omit<PetProfile, 'id'>): PetRecord {
   const id = crypto.randomUUID()
   const fullProfile: PetProfile = { id, ...profile }
   const record: PetRecord = { profile: fullProfile, logs: [], currentVial: null }
@@ -179,14 +186,14 @@ export function createPet(profile: Omit<PetProfile, 'id'>): PetRecord {
   return record
 }
 
-export function saveProfile(petId: string, profile: PetProfile): void {
+function saveProfileLocal(petId: string, profile: PetProfile): void {
   const store = read()
   if (!store.pets[petId]) return
   store.pets[petId] = { ...store.pets[petId], profile }
   write(store)
 }
 
-export function addLogEntry(petId: string, entry: CareLogEntry): void {
+function addLogEntryLocal(petId: string, entry: CareLogEntry): void {
   const store = read()
   if (!store.pets[petId]) return
   store.pets[petId] = {
@@ -196,7 +203,7 @@ export function addLogEntry(petId: string, entry: CareLogEntry): void {
   write(store)
 }
 
-export function deleteLogEntry(petId: string, logId: string): void {
+function deleteLogEntryLocal(petId: string, logId: string): void {
   const store = read()
   if (!store.pets[petId]) return
   store.pets[petId] = {
@@ -206,14 +213,14 @@ export function deleteLogEntry(petId: string, logId: string): void {
   write(store)
 }
 
-export function startNewVial(petId: string, vial: CurrentVial): void {
+function startNewVialLocal(petId: string, vial: CurrentVial): void {
   const store = read()
   if (!store.pets[petId]) return
   store.pets[petId] = { ...store.pets[petId], currentVial: vial }
   write(store)
 }
 
-export function updateInsulinDefaults(petId: string, concentration: 'U-40' | 'U-100', vialSizeML: number): void {
+function updateInsulinDefaultsLocal(petId: string, concentration: 'U-40' | 'U-100', vialSizeML: number): void {
   const store = read()
   if (!store.pets[petId]) return
   store.pets[petId] = {
@@ -223,7 +230,7 @@ export function updateInsulinDefaults(petId: string, concentration: 'U-40' | 'U-
   write(store)
 }
 
-export function updateCHFBaseline(petId: string, baselineSRR: number): void {
+function updateCHFBaselineLocal(petId: string, baselineSRR: number): void {
   const store = read()
   if (!store.pets[petId]) return
   store.pets[petId] = {
@@ -233,8 +240,55 @@ export function updateCHFBaseline(petId: string, baselineSRR: number): void {
   write(store)
 }
 
-export function deletePet(petId: string): void {
+function deletePetLocal(petId: string): void {
   const store = read()
   delete store.pets[petId]
   write(store)
+}
+
+async function isAuthed(): Promise<boolean> {
+  if (typeof window === 'undefined') return false
+  const supabase = getSupabaseBrowser()
+  const { data: { session } } = await supabase.auth.getSession()
+  return session !== null
+}
+
+export async function getAllPets(): Promise<PetRecord[]> {
+  return (await isAuthed()) ? getAllPetsRemote() : getAllPetsLocal()
+}
+
+export async function getPet(petId: string): Promise<PetRecord | null> {
+  return (await isAuthed()) ? getPetRemote(petId) : getPetLocal(petId)
+}
+
+export async function createPet(profile: Omit<PetProfile, 'id'>): Promise<PetRecord> {
+  return (await isAuthed()) ? createPetRemote(profile) : createPetLocal(profile)
+}
+
+export async function saveProfile(petId: string, profile: PetProfile): Promise<void> {
+  return (await isAuthed()) ? saveProfileRemote(petId, profile) : saveProfileLocal(petId, profile)
+}
+
+export async function addLogEntry(petId: string, entry: CareLogEntry): Promise<void> {
+  return (await isAuthed()) ? addLogEntryRemote(petId, entry) : addLogEntryLocal(petId, entry)
+}
+
+export async function deleteLogEntry(petId: string, logId: string): Promise<void> {
+  return (await isAuthed()) ? deleteLogEntryRemote(petId, logId) : deleteLogEntryLocal(petId, logId)
+}
+
+export async function startNewVial(petId: string, vial: CurrentVial): Promise<void> {
+  return (await isAuthed()) ? startNewVialRemote(petId, vial) : startNewVialLocal(petId, vial)
+}
+
+export async function updateInsulinDefaults(petId: string, concentration: 'U-40' | 'U-100', vialSizeML: number): Promise<void> {
+  return (await isAuthed()) ? updateInsulinDefaultsRemote(petId, concentration, vialSizeML) : updateInsulinDefaultsLocal(petId, concentration, vialSizeML)
+}
+
+export async function updateCHFBaseline(petId: string, baselineSRR: number): Promise<void> {
+  return (await isAuthed()) ? updateCHFBaselineRemote(petId, baselineSRR) : updateCHFBaselineLocal(petId, baselineSRR)
+}
+
+export async function deletePet(petId: string): Promise<void> {
+  return (await isAuthed()) ? deletePetRemote(petId) : deletePetLocal(petId)
 }
