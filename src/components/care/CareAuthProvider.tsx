@@ -57,7 +57,7 @@ export function CareAuthProvider({ children }: { children: React.ReactNode }) {
     const supabase = getSupabaseBrowser()
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/care` },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     })
   }, [])
 
@@ -65,7 +65,7 @@ export function CareAuthProvider({ children }: { children: React.ReactNode }) {
     const supabase = getSupabaseBrowser()
     await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/care` },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     })
   }, [])
 
