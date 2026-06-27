@@ -2301,13 +2301,17 @@ function Dashboard({
         </Link>
         <span className="text-stone-200">|</span>
         {petCount >= 1 ? (
-          <Link
-            href="/care?all=1"
-            className="flex items-center gap-3 hover:opacity-70 transition-opacity"
-            title="All pets"
-          >
-            {nameAndIcon}
-          </Link>
+          <>
+            <Link
+              href="/care?all=1"
+              className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors shrink-0"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              All Pets
+            </Link>
+            <span className="text-stone-200">|</span>
+            <div className="flex items-center gap-3">{nameAndIcon}</div>
+          </>
         ) : (
           <div className="flex items-center gap-3">{nameAndIcon}</div>
         )}
