@@ -2172,6 +2172,7 @@ function Dashboard({
 }) {
   const router = useRouter()
   const { user } = useCareAuth()
+  const [removed, setRemoved] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [showEpilepsyForm, setShowEpilepsyForm] = useState(false)
@@ -2266,6 +2267,28 @@ function Dashboard({
     </>
   )
 
+  if (removed) {
+    return (
+      <div className="min-h-screen bg-[#FFFBF0] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-full max-w-sm">
+          <div className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center mx-auto mb-4">
+            <Check className="w-6 h-6 text-stone-400" />
+          </div>
+          <h1 className="text-xl font-bold text-stone-900 mb-1">{profile.name} was removed</h1>
+          <p className="text-sm text-stone-500 mb-6">
+            Their profile and all logs have been permanently deleted.
+          </p>
+          <Link
+            href="/care"
+            className="inline-flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors"
+          >
+            Return to Tailcue Care
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#FFFBF0] flex flex-col">
       <header className="bg-white border-b border-stone-200 px-4 py-3 flex items-center gap-3">
@@ -2297,7 +2320,7 @@ function Dashboard({
             memorialized={!!profile.memorializedAt}
             isOwner={!profile.createdBy || profile.createdBy === user?.id}
             onChanged={() => router.push('/care?all=1')}
-            onRemoved={() => router.push('/care')}
+            onRemoved={() => setRemoved(true)}
           />
           <Link
             href="/care?setup=true"
