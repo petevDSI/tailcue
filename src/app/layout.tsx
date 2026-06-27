@@ -9,6 +9,15 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 export const metadata: Metadata = {
   title: "Tailcue",
   description: "Smart tools for pet owners — vet pricing, insurance, and chronic care tracking",
+  icons: {
+    icon: [
+      { url: '/icons/icon-16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/icons/icon-32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/icons/icon-180.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
   other: {
     'impact-site-verification': [
       'aa7e31e1-a488-44ee-8798-4e75be2f21ce',
