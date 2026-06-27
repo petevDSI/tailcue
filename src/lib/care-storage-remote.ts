@@ -276,3 +276,26 @@ export async function redeemInvite(code: string): Promise<{ petId: string | null
     status: (row?.status as string) ?? 'invalid',
   }
 }
+
+export async function getReminderPrefRemote(): Promise<boolean> {
+  const supabase = getSupabaseBrowser()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return true
+  const { data } = await supabase
+    .from('care_users')
+    .select('reminders_enabled')
+    .eq('id', user.id)
+    .single()
+  return (data?.reminders_enabled as boolean | null) ?? true
+}
+
+export async function setRemindersEnabledRemote(enabled: boolean): Promise<void> {
+  const supabase = getSupabaseBrowser()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+  const { error } = await supabase
+    .from('care_users')
+    .update({ reminders_enabled: enabled })
+    .eq('id', user.id)
+  if (error) throw new Error(error.message)
+}
