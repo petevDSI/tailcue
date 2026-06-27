@@ -2277,7 +2277,7 @@ function Dashboard({
           Home
         </Link>
         <span className="text-stone-200">|</span>
-        {petCount >= 2 ? (
+        {petCount >= 1 ? (
           <Link
             href="/care?all=1"
             className="flex items-center gap-3 hover:opacity-70 transition-opacity"
