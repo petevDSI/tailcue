@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Share2, Copy, Check, X, RefreshCw, Trash2, Mail } from 'lucide-react'
+import { Users, Copy, Check, X, RefreshCw, Trash2, Mail } from 'lucide-react'
 import { createInvite, listInvites, revokeInvite, type InviteRow } from '@/lib/care-storage'
 
 function isActive(inv: InviteRow): boolean {
@@ -105,8 +105,8 @@ export function CareShareButton({ petId, petName }: { petId: string; petName: st
         onClick={handleOpen}
         className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors"
       >
-        <Share2 className="w-3.5 h-3.5" />
-        Share
+        <Users className="w-3.5 h-3.5" />
+        Invite caregiver
       </button>
 
       {open && (

@@ -23,6 +23,7 @@ import { CareAccountControl } from '@/components/care/CareAccountControl'
 import { CareSyncNudge } from '@/components/care/CareSyncNudge'
 import { CareJoinButton } from '@/components/care/CareJoinButton'
 import { CarePetManageMenu } from '@/components/care/CarePetManageMenu'
+import { CareInstallBanner } from '@/components/care/CareInstallBanner'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -513,6 +514,8 @@ function PetListScreen({
       {nudge}
 
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-3 pb-24 sm:pb-6">
+        {/* iOS install nudge — only renders on iOS Safari, hides when already installed */}
+        <CareInstallBanner />
         <p className="text-xs text-stone-400 mb-1">Your pets</p>
         {activePets.length === 0 ? (
           <p className="text-sm text-stone-400 py-6 text-center">No active pets. Tap &ldquo;Add Pet&rdquo; to start tracking.</p>
