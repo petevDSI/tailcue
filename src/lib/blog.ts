@@ -9,10 +9,19 @@ export interface PostMeta {
   description: string
   date: string
   slug: string
+  tags: string[]
 }
 
 export interface Post extends PostMeta {
   content: string
+}
+
+function normalizeTags(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((t): t is string => typeof t === 'string')
+    .map((t) => t.trim().toLowerCase())
+    .filter(Boolean)
 }
 
 export function getAllPosts(): PostMeta[] {
@@ -29,6 +38,7 @@ export function getAllPosts(): PostMeta[] {
         description: data.description as string,
         date: data.date as string,
         slug: data.slug as string,
+        tags: normalizeTags(data.tags),
       }
     })
     .sort((a, b) => (a.date < b.date ? 1 : -1))
@@ -45,6 +55,7 @@ export function getPostBySlug(slug: string): Post | null {
     description: data.description as string,
     date: data.date as string,
     slug: data.slug as string,
+    tags: normalizeTags(data.tags),
     content,
   }
 }

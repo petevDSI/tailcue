@@ -65,6 +65,21 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
             {post.title}
           </h1>
           <p className="text-base leading-relaxed text-stone-500">{post.description}</p>
+          {post.tags.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {post.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-500"
+                >
+                  {tag
+                    .split('-')
+                    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                    .join(' ')}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <hr className="mb-8 border-stone-200" />
