@@ -33,6 +33,7 @@ import {
 } from '@/lib/care-risk-engine'
 import { estimateInsulinSupply } from '@/lib/care-supply-estimator'
 import { CareExportButton } from '@/components/care/CareExportButton'
+import { CareMedicationSection } from '@/components/care/CareMedicationSection'
 import { CareAccountControl } from '@/components/care/CareAccountControl'
 import { CareSyncNudge } from '@/components/care/CareSyncNudge'
 import { CareShareButton } from '@/components/care/CareShareButton'
@@ -2378,6 +2379,13 @@ function Dashboard({
         >
           My pet ate something
         </Link>
+
+        <CareMedicationSection
+          petId={petId}
+          logs={logs}
+          onLogEntry={onNewLog}
+          onDeleteLog={onDeleteLog}
+        />
 
         {/* ── Epilepsy dashboard ── */}
         {isEpilepsy && (
