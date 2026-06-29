@@ -2372,6 +2372,13 @@ function Dashboard({
           <CareExportButton petId={petId} />
         </div>
 
+        <Link
+          href={`/care/${petId}/ate`}
+          className="flex items-center justify-center w-full min-h-[44px] rounded-xl border border-stone-200 bg-white hover:border-amber-300 hover:bg-amber-50/30 text-sm font-semibold text-stone-700 transition-colors"
+        >
+          My pet ate something
+        </Link>
+
         {/* ── Epilepsy dashboard ── */}
         {isEpilepsy && (
           <>
