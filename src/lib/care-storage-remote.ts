@@ -6,6 +6,8 @@ interface SetupData {
   vialSizeML?: number
   chfBaselineSRR?: number
   currentVial?: CurrentVial | null
+  weightLbs?: number
+  ageYears?: number
 }
 
 interface CarePetRow {
@@ -39,6 +41,8 @@ function rowToProfile(row: CarePetRow): PetProfile {
     ...(setup.insulinConcentration !== undefined && { insulinConcentration: setup.insulinConcentration }),
     ...(setup.vialSizeML !== undefined && { vialSizeML: setup.vialSizeML }),
     ...(setup.chfBaselineSRR !== undefined && { chfBaselineSRR: setup.chfBaselineSRR }),
+    ...(setup.weightLbs !== undefined && { weightLbs: setup.weightLbs }),
+    ...(setup.ageYears !== undefined && { ageYears: setup.ageYears }),
   }
 }
 
@@ -91,6 +95,8 @@ export async function createPetRemote(profile: Omit<PetProfile, 'id'>): Promise<
   if (profile.insulinConcentration !== undefined) setup.insulinConcentration = profile.insulinConcentration
   if (profile.vialSizeML !== undefined) setup.vialSizeML = profile.vialSizeML
   if (profile.chfBaselineSRR !== undefined) setup.chfBaselineSRR = profile.chfBaselineSRR
+  if (profile.weightLbs !== undefined) setup.weightLbs = profile.weightLbs
+  if (profile.ageYears !== undefined) setup.ageYears = profile.ageYears
 
   const { data: pet, error: petError } = await supabase
     .from('care_pets')
@@ -126,6 +132,8 @@ export async function saveProfileRemote(petId: string, profile: PetProfile): Pro
     ...(profile.insulinConcentration !== undefined && { insulinConcentration: profile.insulinConcentration }),
     ...(profile.vialSizeML !== undefined && { vialSizeML: profile.vialSizeML }),
     ...(profile.chfBaselineSRR !== undefined && { chfBaselineSRR: profile.chfBaselineSRR }),
+    ...(profile.weightLbs !== undefined && { weightLbs: profile.weightLbs }),
+    ...(profile.ageYears !== undefined && { ageYears: profile.ageYears }),
   }
   await supabase
     .from('care_pets')

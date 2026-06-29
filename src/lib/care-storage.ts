@@ -11,6 +11,9 @@ export interface PetProfile {
   vialSizeML?: number
   // chf fields
   chfBaselineSRR?: number
+  // general profile
+  weightLbs?: number
+  ageYears?: number
 }
 
 interface BaseLogEntry {

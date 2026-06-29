@@ -110,7 +110,9 @@ function SetupScreen({
     condition: Condition,
     concentration?: 'U-40' | 'U-100',
     vialSizeML?: number,
-    baselineSRR?: number
+    baselineSRR?: number,
+    weightLbs?: number,
+    ageYears?: number
   ) => void
   onBack?: () => void
 }) {
@@ -125,6 +127,10 @@ function SetupScreen({
 
   const [showBaselineDetails, setShowBaselineDetails] = useState(false)
   const [baselineSRRStr, setBaselineSRRStr] = useState('')
+
+  const [showProfileDetails, setShowProfileDetails] = useState(false)
+  const [weightLbsStr, setWeightLbsStr] = useState('')
+  const [ageYearsStr, setAgeYearsStr] = useState('')
 
   function handleSpeciesChange(s: 'cat' | 'dog') {
     setSpecies(s)
@@ -152,7 +158,11 @@ function SetupScreen({
     const ml = vialSizeMlStr && !isNaN(mlParsed) && mlParsed > 0 ? mlParsed : undefined
     const srrParsed = parseFloat(baselineSRRStr)
     const srr = baselineSRRStr && !isNaN(srrParsed) && srrParsed > 0 ? srrParsed : undefined
-    onSave(name.trim(), species, condition, conc, ml, srr)
+    const weightParsed = parseFloat(weightLbsStr)
+    const weight = weightLbsStr && !isNaN(weightParsed) && weightParsed > 0 ? weightParsed : undefined
+    const ageParsed = parseFloat(ageYearsStr)
+    const age = ageYearsStr && !isNaN(ageParsed) && ageParsed >= 0 ? ageParsed : undefined
+    onSave(name.trim(), species, condition, conc, ml, srr, weight, age)
   }
 
   const conditionMeta = CONDITION_META[condition]
@@ -265,6 +275,49 @@ function SetupScreen({
               focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
             onKeyDown={(e) => e.key === 'Enter' && name.trim() && handleSave()}
           />
+        </div>
+
+        <div className="mb-4">
+          <button
+            type="button"
+            onClick={() => setShowProfileDetails(!showProfileDetails)}
+            className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors"
+          >
+            {showProfileDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            Weight &amp; age (optional)
+          </button>
+          {showProfileDetails && (
+            <div className="mt-3 space-y-3 rounded-xl border border-stone-200 bg-stone-50 p-3">
+              <div>
+                <label className="block text-xs font-medium text-stone-600 mb-1.5">Approximate weight (lbs)</label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={weightLbsStr}
+                  onChange={(e) => setWeightLbsStr(e.target.value)}
+                  placeholder="e.g. 12"
+                  min="0"
+                  step="0.1"
+                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-stone-900 text-sm
+                    focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-stone-600 mb-1.5">Approximate age (years)</label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={ageYearsStr}
+                  onChange={(e) => setAgeYearsStr(e.target.value)}
+                  placeholder="e.g. 8"
+                  min="0"
+                  step="0.5"
+                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-stone-900 text-sm
+                    focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {condition === 'feline_diabetes' && (
@@ -607,16 +660,20 @@ function CareIndexInner() {
     condition: Condition,
     concentration?: 'U-40' | 'U-100',
     vialSizeML?: number,
-    baselineSRR?: number
+    baselineSRR?: number,
+    weightLbs?: number,
+    ageYears?: number
   ) {
     const record = await createPet({
       name,
       species,
       condition,
       createdAt: new Date().toISOString(),
-      ...(concentration ? { insulinConcentration: concentration } : {}),
-      ...(vialSizeML   ? { vialSizeML }                          : {}),
-      ...(baselineSRR  ? { chfBaselineSRR: baselineSRR }         : {}),
+      ...(concentration    ? { insulinConcentration: concentration } : {}),
+      ...(vialSizeML      ? { vialSizeML }                          : {}),
+      ...(baselineSRR     ? { chfBaselineSRR: baselineSRR }         : {}),
+      ...(weightLbs !== undefined ? { weightLbs }                   : {}),
+      ...(ageYears  !== undefined ? { ageYears }                    : {}),
     })
     router.push(`/care/${record.profile.id}`)
   }
