@@ -3,6 +3,7 @@ import {
   type DiabetesLogEntry, type CHFLogEntry, type CKDLogEntry,
   type CushingsLogEntry, type OALogEntry, type EpilepsyLogEntry,
   type HyperthyroidismLogEntry, type IBDLogEntry, type CDSLogEntry, type DMLogEntry,
+  type MedicationGivenLogEntry,
 } from './care-storage'
 import {
   evaluateGlucoseRisk, evaluateCHFRisk, evaluateCKDRisk, evaluateCushingsRisk,
@@ -47,7 +48,7 @@ function fmtIsoDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-function getRiskForEntry(profile: PetProfile, entry: CareLogEntry, allLogs: CareLogEntry[]) {
+function getRiskForEntry(profile: PetProfile, entry: Exclude<CareLogEntry, MedicationGivenLogEntry>, allLogs: CareLogEntry[]) {
   switch (entry.condition) {
     case 'feline_diabetes': return evaluateGlucoseRisk((entry as DiabetesLogEntry).bloodGlucose)
     case 'chf': {
@@ -68,7 +69,7 @@ function getRiskForEntry(profile: PetProfile, entry: CareLogEntry, allLogs: Care
   }
 }
 
-function buildLogRow(profile: PetProfile, entry: CareLogEntry, allLogs: CareLogEntry[]): PdfLogRow {
+function buildLogRow(profile: PetProfile, entry: Exclude<CareLogEntry, MedicationGivenLogEntry>, allLogs: CareLogEntry[]): PdfLogRow {
   const risk = getRiskForEntry(profile, entry, allLogs)
   const riskLevel = risk.displayLabel ?? (risk.level.charAt(0).toUpperCase() + risk.level.slice(1))
   let primaryMetric = '—'
@@ -270,6 +271,7 @@ export function buildPdfReportData(
   const cutoff = rangedays === 'all' ? 0 : now - rangedays * 24 * 60 * 60 * 1000
 
   const filtered = allLogs
+    .filter((l): l is Exclude<CareLogEntry, MedicationGivenLogEntry> => l.condition !== undefined)
     .filter((l) => new Date(l.timestamp).getTime() >= cutoff)
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
 

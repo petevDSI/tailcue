@@ -121,7 +121,17 @@ export interface DMLogEntry extends BaseLogEntry {
   notes?: string
 }
 
-export type CareLogEntry = DiabetesLogEntry | CHFLogEntry | CKDLogEntry | CushingsLogEntry | OALogEntry | EpilepsyLogEntry | HyperthyroidismLogEntry | IBDLogEntry | CDSLogEntry | DMLogEntry
+export interface MedicationGivenLogEntry extends BaseLogEntry {
+  condition?: never   // not a condition log; condition-switch default cases catch this
+  type: 'medication_given'
+  medicationId: string
+  name: string        // denormalized so the log reads standalone in exports
+  doseAmount?: string
+  scheduledTime?: string  // which scheduled dose this satisfies, e.g. '20:00'
+  note?: string
+}
+
+export type CareLogEntry = DiabetesLogEntry | CHFLogEntry | CKDLogEntry | CushingsLogEntry | OALogEntry | EpilepsyLogEntry | HyperthyroidismLogEntry | IBDLogEntry | CDSLogEntry | DMLogEntry | MedicationGivenLogEntry
 
 export interface CurrentVial {
   startedAt: string               // ISO timestamp
@@ -130,10 +140,26 @@ export interface CurrentVial {
   unitsAlreadyUsedAtStart: number
 }
 
+export interface CareMedication {
+  id: string
+  petId: string
+  name: string
+  strength?: string
+  doseAmount?: string
+  scheduleTimes: string[]
+  scheduleNote?: string
+  remindersEnabled: boolean
+  notes?: string
+  startedAt?: string
+  endedAt?: string | null
+  createdAt: string
+}
+
 export interface PetRecord {
   profile: PetProfile
   logs: CareLogEntry[]
   currentVial: CurrentVial | null
+  medications?: CareMedication[]
 }
 
 import { getSupabaseBrowser } from './supabase-browser'
@@ -142,6 +168,7 @@ import {
   addLogEntryRemote, deleteLogEntryRemote, startNewVialRemote,
   updateInsulinDefaultsRemote, updateCHFBaselineRemote, deletePetRemote,
   memorializePetRemote, restorePetRemote,
+  getMedicationsRemote, createMedicationRemote, updateMedicationRemote, discontinueMedicationRemote,
 } from './care-storage-remote'
 
 interface PetStore {
@@ -283,6 +310,40 @@ function restorePetLocal(petId: string): void {
   }
 }
 
+function getMedicationsLocal(petId: string): CareMedication[] {
+  return read().pets[petId]?.medications ?? []
+}
+
+function createMedicationLocal(petId: string, med: CareMedication): void {
+  const store = read()
+  if (!store.pets[petId]) return
+  const existing = store.pets[petId].medications ?? []
+  store.pets[petId] = { ...store.pets[petId], medications: [...existing, med] }
+  write(store)
+}
+
+function updateMedicationLocal(petId: string, med: CareMedication): void {
+  const store = read()
+  if (!store.pets[petId]) return
+  const existing = store.pets[petId].medications ?? []
+  store.pets[petId] = {
+    ...store.pets[petId],
+    medications: existing.map((m) => (m.id === med.id ? med : m)),
+  }
+  write(store)
+}
+
+function discontinueMedicationLocal(petId: string, medId: string, endedAt: string): void {
+  const store = read()
+  if (!store.pets[petId]) return
+  const existing = store.pets[petId].medications ?? []
+  store.pets[petId] = {
+    ...store.pets[petId],
+    medications: existing.map((m) => (m.id === medId ? { ...m, endedAt } : m)),
+  }
+  write(store)
+}
+
 async function isAuthed(): Promise<boolean> {
   if (typeof window === 'undefined') return false
   const supabase = getSupabaseBrowser()
@@ -336,6 +397,22 @@ export async function memorializePet(petId: string): Promise<void> {
 
 export async function restorePet(petId: string): Promise<void> {
   return (await isAuthed()) ? restorePetRemote(petId) : restorePetLocal(petId)
+}
+
+export async function getMedications(petId: string): Promise<CareMedication[]> {
+  return (await isAuthed()) ? getMedicationsRemote(petId) : getMedicationsLocal(petId)
+}
+
+export async function createMedication(petId: string, med: CareMedication): Promise<void> {
+  return (await isAuthed()) ? createMedicationRemote(petId, med) : createMedicationLocal(petId, med)
+}
+
+export async function updateMedication(petId: string, med: CareMedication): Promise<void> {
+  return (await isAuthed()) ? updateMedicationRemote(petId, med) : updateMedicationLocal(petId, med)
+}
+
+export async function discontinueMedication(petId: string, medId: string, endedAt: string): Promise<void> {
+  return (await isAuthed()) ? discontinueMedicationRemote(petId, medId, endedAt) : discontinueMedicationLocal(petId, medId, endedAt)
 }
 
 export {

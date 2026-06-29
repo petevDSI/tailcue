@@ -1,5 +1,5 @@
 import { getSupabaseBrowser } from './supabase-browser'
-import type { PetProfile, CareLogEntry, PetRecord, CurrentVial } from './care-storage'
+import type { PetProfile, CareLogEntry, PetRecord, CurrentVial, CareMedication } from './care-storage'
 
 interface SetupData {
   insulinConcentration?: 'U-40' | 'U-100'
@@ -26,6 +26,21 @@ interface CareLogRow {
   pet_id: string
   entry: CareLogEntry
   logged_at: string
+}
+
+interface CareMedRow {
+  id: string
+  pet_id: string
+  created_by: string
+  name: string
+  strength: string | null
+  dose_amount: string | null
+  schedule_times: string[]
+  schedule_note: string | null
+  reminders_enabled: boolean
+  started_at: string | null
+  ended_at: string | null
+  created_at: string
 }
 
 function rowToProfile(row: CarePetRow): PetProfile {
@@ -55,6 +70,22 @@ function buildRecord(row: CarePetRow, allLogs: CareLogRow[]): PetRecord {
     profile: rowToProfile(row),
     logs,
     currentVial: row.setup_data?.currentVial ?? null,
+  }
+}
+
+function rowToMedication(row: CareMedRow): CareMedication {
+  return {
+    id: row.id,
+    petId: row.pet_id,
+    name: row.name,
+    ...(row.strength !== null && { strength: row.strength }),
+    ...(row.dose_amount !== null && { doseAmount: row.dose_amount }),
+    scheduleTimes: row.schedule_times ?? [],
+    ...(row.schedule_note !== null && { scheduleNote: row.schedule_note }),
+    remindersEnabled: row.reminders_enabled,
+    ...(row.started_at !== null && { startedAt: row.started_at }),
+    endedAt: row.ended_at ?? null,
+    createdAt: row.created_at,
   }
 }
 
@@ -200,6 +231,67 @@ export async function restorePetRemote(petId: string): Promise<void> {
     .from('care_pets')
     .update({ memorialized_at: null })
     .eq('id', petId)
+  if (error) throw new Error(error.message)
+}
+
+// ── Medications ────────────────────────────────────────────────────────────
+
+export async function getMedicationsRemote(petId: string): Promise<CareMedication[]> {
+  const supabase = getSupabaseBrowser()
+  const { data } = await supabase
+    .from('care_medications')
+    .select('*')
+    .eq('pet_id', petId)
+    .order('created_at')
+  return ((data ?? []) as CareMedRow[]).map(rowToMedication)
+}
+
+export async function createMedicationRemote(petId: string, med: CareMedication): Promise<void> {
+  const supabase = getSupabaseBrowser()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+  const { error } = await supabase.from('care_medications').insert({
+    id: med.id,
+    pet_id: petId,
+    created_by: user.id,
+    name: med.name,
+    strength: med.strength ?? null,
+    dose_amount: med.doseAmount ?? null,
+    schedule_times: med.scheduleTimes,
+    schedule_note: med.scheduleNote ?? null,
+    reminders_enabled: med.remindersEnabled,
+    started_at: med.startedAt ?? null,
+    ended_at: med.endedAt ?? null,
+    created_at: med.createdAt,
+  })
+  if (error) throw new Error(error.message)
+}
+
+export async function updateMedicationRemote(petId: string, med: CareMedication): Promise<void> {
+  const supabase = getSupabaseBrowser()
+  const { error } = await supabase
+    .from('care_medications')
+    .update({
+      name: med.name,
+      strength: med.strength ?? null,
+      dose_amount: med.doseAmount ?? null,
+      schedule_times: med.scheduleTimes,
+      schedule_note: med.scheduleNote ?? null,
+      reminders_enabled: med.remindersEnabled,
+      started_at: med.startedAt ?? null,
+    })
+    .eq('id', med.id)
+    .eq('pet_id', petId)
+  if (error) throw new Error(error.message)
+}
+
+export async function discontinueMedicationRemote(petId: string, medId: string, endedAt: string): Promise<void> {
+  const supabase = getSupabaseBrowser()
+  const { error } = await supabase
+    .from('care_medications')
+    .update({ ended_at: endedAt })
+    .eq('id', medId)
+    .eq('pet_id', petId)
   if (error) throw new Error(error.message)
 }
 

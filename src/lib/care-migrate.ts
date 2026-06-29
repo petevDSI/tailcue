@@ -75,6 +75,26 @@ export async function migrateLocalToRemote(): Promise<number> {
       const { error: logErr } = await supabase.from('care_logs').insert(rows)
       if (logErr) throw new Error(`Care migrate: logs insert failed (${p.name}): ${logErr.message}`)
     }
+
+    // 4) medications
+    if (rec.medications && rec.medications.length > 0) {
+      const medRows = rec.medications.map((m) => ({
+        id: m.id,
+        pet_id: p.id,
+        created_by: user.id,
+        name: m.name,
+        strength: m.strength ?? null,
+        dose_amount: m.doseAmount ?? null,
+        schedule_times: m.scheduleTimes,
+        schedule_note: m.scheduleNote ?? null,
+        reminders_enabled: m.remindersEnabled,
+        started_at: m.startedAt ?? null,
+        ended_at: m.endedAt ?? null,
+        created_at: m.createdAt,
+      }))
+      const { error: medErr } = await supabase.from('care_medications').insert(medRows)
+      if (medErr) throw new Error(`Care migrate: medications insert failed (${p.name}): ${medErr.message}`)
+    }
   }
 
   clearLocalStore()
