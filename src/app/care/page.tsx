@@ -128,7 +128,6 @@ function SetupScreen({
   const [showBaselineDetails, setShowBaselineDetails] = useState(false)
   const [baselineSRRStr, setBaselineSRRStr] = useState('')
 
-  const [showProfileDetails, setShowProfileDetails] = useState(false)
   const [weightLbsStr, setWeightLbsStr] = useState('')
   const [ageYearsStr, setAgeYearsStr] = useState('')
 
@@ -277,47 +276,36 @@ function SetupScreen({
           />
         </div>
 
-        <div className="mb-4">
-          <button
-            type="button"
-            onClick={() => setShowProfileDetails(!showProfileDetails)}
-            className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors"
-          >
-            {showProfileDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            Weight &amp; age (optional)
-          </button>
-          {showProfileDetails && (
-            <div className="mt-3 space-y-3 rounded-xl border border-stone-200 bg-stone-50 p-3">
-              <div>
-                <label className="block text-xs font-medium text-stone-600 mb-1.5">Approximate weight (lbs)</label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  value={weightLbsStr}
-                  onChange={(e) => setWeightLbsStr(e.target.value)}
-                  placeholder="e.g. 12"
-                  min="0"
-                  step="0.1"
-                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-stone-900 text-sm
-                    focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-stone-600 mb-1.5">Approximate age (years)</label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  value={ageYearsStr}
-                  onChange={(e) => setAgeYearsStr(e.target.value)}
-                  placeholder="e.g. 8"
-                  min="0"
-                  step="0.5"
-                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-stone-900 text-sm
-                    focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-                />
-              </div>
-            </div>
-          )}
+        <div className="mb-4 space-y-3 rounded-xl border border-stone-200 bg-stone-50 p-3">
+          <p className="text-xs font-medium text-stone-500">Weight &amp; age <span className="font-normal">(optional)</span></p>
+          <div>
+            <label className="block text-xs font-medium text-stone-600 mb-1.5">Approximate weight (lbs)</label>
+            <input
+              type="number"
+              inputMode="decimal"
+              value={weightLbsStr}
+              onChange={(e) => setWeightLbsStr(e.target.value)}
+              placeholder="e.g. 12"
+              min="0"
+              step="0.1"
+              className="w-full rounded-xl border border-stone-300 px-3 py-2 text-stone-900 text-sm
+                focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-stone-600 mb-1.5">Approximate age (years)</label>
+            <input
+              type="number"
+              inputMode="decimal"
+              value={ageYearsStr}
+              onChange={(e) => setAgeYearsStr(e.target.value)}
+              placeholder="e.g. 8"
+              min="0"
+              step="0.5"
+              className="w-full rounded-xl border border-stone-300 px-3 py-2 text-stone-900 text-sm
+                focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+            />
+          </div>
         </div>
 
         {condition === 'feline_diabetes' && (

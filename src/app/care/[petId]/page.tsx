@@ -2373,12 +2373,16 @@ function Dashboard({
           <CareExportButton petId={petId} />
         </div>
 
-        <Link
-          href={`/care/${petId}/ate`}
-          className="flex items-center justify-center w-full min-h-[44px] rounded-xl border border-stone-200 bg-white hover:border-amber-300 hover:bg-amber-50/30 text-sm font-semibold text-stone-700 transition-colors"
-        >
-          My pet ate something
-        </Link>
+        <div className="flex justify-end">
+          <Link
+            href={`/care/${petId}/ate`}
+            className="inline-flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2 min-h-[44px] text-sm font-medium text-stone-600 hover:border-amber-300 hover:bg-amber-50/30 transition-colors"
+            title="My pet ate something and I'm not sure it's okay"
+          >
+            <span aria-hidden>⚠</span>
+            My pet ate something
+          </Link>
+        </div>
 
         <CareMedicationSection
           petId={petId}
