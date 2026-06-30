@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Check, ChevronDown, ChevronUp, Cloud, Plus, X } from 'lucide-react'
 import {
   getMedications, createMedication, updateMedication, discontinueMedication,
   type CareMedication, type MedicationGivenLogEntry, type CareLogEntry,
 } from '@/lib/care-storage'
 import { useCareAuth } from './CareAuthProvider'
+import { getDrugReference, type DrugReference } from '@/lib/care-drugs'
 
 function todayDate(): string {
   return new Date().toISOString().slice(0, 10)
@@ -54,11 +55,15 @@ function medToForm(med: CareMedication): MedFormState {
 function MedForm({
   petId,
   existing,
+  condition,
+  species,
   onSaved,
   onCancel,
 }: {
   petId: string
   existing: CareMedication | null
+  condition: string
+  species: 'cat' | 'dog'
   onSaved: (meds: CareMedication[]) => void
   onCancel: () => void
 }) {
@@ -66,6 +71,55 @@ function MedForm({
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [newTime, setNewTime] = useState('')
+
+  // ── Drug picker ───────────────────────────────────────────────────────
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const [drugs, setDrugs] = useState<DrugReference[]>([])
+  const [selectedDrug, setSelectedDrug] = useState<DrugReference | null>(null)
+  const [showAllDrugs, setShowAllDrugs] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const initialName = useRef(existing?.name ?? '')
+
+  useEffect(() => {
+    getDrugReference().then((list) => {
+      setDrugs(list)
+      if (initialName.current) {
+        const found = list.find((d) => d.name === initialName.current)
+        if (found) setSelectedDrug(found)
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const speciesKey = species === 'dog' ? 'dogs' : 'cats'
+  const relevantDrugs = drugs.filter(
+    (d) =>
+      (d.speciesScope === 'both' || d.speciesScope === speciesKey) &&
+      d.conditions.includes(condition)
+  )
+  const allSpeciesDrugs = drugs.filter(
+    (d) => d.speciesScope === 'both' || d.speciesScope === speciesKey
+  )
+  const searchLower = form.name.toLowerCase()
+  const pool = showAllDrugs ? allSpeciesDrugs : relevantDrugs
+  const filteredDrugs = searchLower
+    ? pool.filter(
+        (d) =>
+          d.name.toLowerCase().includes(searchLower) ||
+          (d.brandNames && d.brandNames.toLowerCase().includes(searchLower))
+      )
+    : pool
+  const hasMore = !showAllDrugs && allSpeciesDrugs.length > relevantDrugs.length
+  // ── end drug picker ───────────────────────────────────────────────────
 
   const doseChanged = existing && (
     (form.strength.trim() || undefined) !== existing.strength ||
@@ -149,14 +203,77 @@ function MedForm({
     <div className="space-y-3 pt-1">
       <div>
         <label className="block text-xs font-medium text-stone-600 mb-1">Medication name *</label>
-        <input
-          type="text"
-          value={form.name}
-          onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-          placeholder="e.g. Atenolol"
-          className="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm text-stone-900
-            focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-        />
+        <div ref={dropdownRef} className="relative">
+          <input
+            type="text"
+            value={form.name}
+            onChange={(e) => {
+              setForm((f) => ({ ...f, name: e.target.value }))
+              setSelectedDrug(null)
+              setDropdownOpen(true)
+            }}
+            onFocus={() => setDropdownOpen(true)}
+            placeholder="Search or type a medication name"
+            className="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm text-stone-900
+              focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+          />
+          {dropdownOpen && drugs.length > 0 && (
+            <ul className="absolute z-20 left-0 right-0 mt-1 bg-white border border-stone-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+              {filteredDrugs.length === 0 && (
+                <li className="px-3 py-2.5 text-xs text-stone-400">No matches — try the options below</li>
+              )}
+              {filteredDrugs.map((drug) => (
+                <li key={drug.name}>
+                  <button
+                    type="button"
+                    className="w-full text-left px-3 py-2.5 text-sm hover:bg-amber-50 transition-colors"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      setForm((f) => ({ ...f, name: drug.name }))
+                      setSelectedDrug(drug)
+                      setDropdownOpen(false)
+                    }}
+                  >
+                    <span className="font-medium text-stone-900">{drug.name}</span>
+                    {drug.brandNames && (
+                      <span className="text-stone-400 text-xs ml-1.5">({drug.brandNames})</span>
+                    )}
+                  </button>
+                </li>
+              ))}
+              {hasMore && (
+                <li className="border-t border-stone-100">
+                  <button
+                    type="button"
+                    className="w-full text-left px-3 py-2.5 text-xs text-stone-500 hover:bg-stone-50 transition-colors"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      setShowAllDrugs(true)
+                    }}
+                  >
+                    Search all medications →
+                  </button>
+                </li>
+              )}
+              <li className="border-t border-stone-100">
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-2.5 text-xs text-stone-500 hover:bg-stone-50 transition-colors"
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    setSelectedDrug(null)
+                    setDropdownOpen(false)
+                  }}
+                >
+                  Other — type it in
+                </button>
+              </li>
+            </ul>
+          )}
+        </div>
+        {selectedDrug?.note && (
+          <p className="text-xs text-stone-400 mt-1">{selectedDrug.note}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -183,6 +300,26 @@ function MedForm({
           />
         </div>
       </div>
+
+      {selectedDrug && selectedDrug.commonStrengths.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          <span className="text-xs text-stone-400 self-center">Common strengths:</span>
+          {selectedDrug.commonStrengths.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setForm((f) => ({ ...f, strength: s }))}
+              className={`text-xs px-2 py-1 rounded-lg border transition-colors ${
+                form.strength === s
+                  ? 'bg-amber-100 border-amber-300 text-amber-800 font-medium'
+                  : 'border-stone-200 bg-white text-stone-600 hover:bg-stone-50'
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
 
       {doseChanged && (
         <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-2.5 py-1.5">
@@ -316,12 +453,14 @@ function MedForm({
 
 interface Props {
   petId: string
+  condition: string
+  species: 'cat' | 'dog'
   logs: CareLogEntry[]
   onLogEntry: (entry: CareLogEntry) => void
   onDeleteLog: (id: string) => void
 }
 
-export function CareMedicationSection({ petId, logs, onLogEntry, onDeleteLog }: Props) {
+export function CareMedicationSection({ petId, condition, species, logs, onLogEntry, onDeleteLog }: Props) {
   const { user, openSignIn } = useCareAuth()
   const [meds, setMeds] = useState<CareMedication[]>([])
   const [loaded, setLoaded] = useState(false)
@@ -332,7 +471,7 @@ export function CareMedicationSection({ petId, logs, onLogEntry, onDeleteLog }: 
   const [showDiscontinued, setShowDiscontinued] = useState(false)
   const [pendingUndoId, setPendingUndoId] = useState<string | null>(null)
 
-  const todayStr = todayDate()
+  const [todayStr, setTodayStr] = useState(todayDate())
   const medGivenLogs = logs.filter(isMedGivenLog)
   const activeMeds = meds.filter((m) => !m.endedAt)
   const discontinuedMeds = meds.filter((m) => !!m.endedAt)
@@ -342,6 +481,24 @@ export function CareMedicationSection({ petId, logs, onLogEntry, onDeleteLog }: 
   useEffect(() => {
     getMedications(petId).then((m) => { setMeds(m); setLoaded(true) })
   }, [petId])
+
+  useEffect(() => {
+    function syncToday() {
+      const d = todayDate()
+      setTodayStr((prev) => (prev !== d ? d : prev))
+    }
+    function onVisible() {
+      if (document.visibilityState === 'visible') syncToday()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', syncToday)
+    const interval = setInterval(syncToday, 60_000)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', syncToday)
+      clearInterval(interval)
+    }
+  }, [])
 
   if (!loaded) return null
 
@@ -551,6 +708,8 @@ export function CareMedicationSection({ petId, logs, onLogEntry, onDeleteLog }: 
                   <MedForm
                     petId={petId}
                     existing={med}
+                    condition={condition}
+                    species={species}
                     onSaved={(updated) => { setMeds(updated); closeForm() }}
                     onCancel={closeForm}
                   />
@@ -610,6 +769,8 @@ export function CareMedicationSection({ petId, logs, onLogEntry, onDeleteLog }: 
               <MedForm
                 petId={petId}
                 existing={null}
+                condition={condition}
+                species={species}
                 onSaved={(updated) => { setMeds(updated); closeForm() }}
                 onCancel={closeForm}
               />

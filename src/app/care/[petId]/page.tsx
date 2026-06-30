@@ -2386,6 +2386,8 @@ function Dashboard({
 
         <CareMedicationSection
           petId={petId}
+          condition={condition}
+          species={profile.species}
           logs={logs}
           onLogEntry={onNewLog}
           onDeleteLog={onDeleteLog}
