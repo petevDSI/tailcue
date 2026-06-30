@@ -10,7 +10,11 @@ import { useCareAuth } from './CareAuthProvider'
 import { getDrugReference, type DrugReference } from '@/lib/care-drugs'
 
 function todayDate(): string {
-  return new Date().toISOString().slice(0, 10)
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 function fmtTime(iso: string): string {
@@ -506,7 +510,7 @@ export function CareMedicationSection({ petId, condition, species, logs, onLogEn
     return medGivenLogs.find(
       (l) => l.medicationId === medicationId &&
         l.scheduledTime === scheduledTime &&
-        l.timestamp.slice(0, 10) === todayStr
+        (l.date ?? l.timestamp.slice(0, 10)) === todayStr
     )
   }
 
