@@ -5,6 +5,7 @@ const NAV_LINKS = [
   { label: 'Price Check', href: '/checker'   },
   { label: 'Insurance',   href: '/insurance' },
   { label: 'Articles',    href: '/blog'      },
+  { label: 'Contact',     href: '/contact'   },
 ]
 
 const DEFAULT_DISCLAIMER =

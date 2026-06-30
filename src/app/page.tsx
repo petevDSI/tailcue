@@ -67,6 +67,12 @@ export default function HomePage() {
           <p className="text-base text-stone-600 leading-relaxed max-w-sm mx-auto">
             Understand vet pricing, see what insurance pays, and track your pet&apos;s chronic condition at home.
           </p>
+          <p className="mt-4 text-sm text-stone-500">
+            Questions, or want to work together?{' '}
+            <Link href="/contact" className="font-semibold text-amber-600 hover:text-amber-700 hover:underline">
+              Get in touch →
+            </Link>
+          </p>
         </div>
       </section>
 
