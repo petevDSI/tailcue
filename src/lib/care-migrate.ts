@@ -2,17 +2,16 @@ import { getSupabaseBrowser } from './supabase-browser'
 import { getAllPetsLocal, clearLocalStore } from './care-storage'
 
 /**
- * One-time, first-login import of localStorage Care data into Supabase.
+ * Per-pet import of localStorage Care data into Supabase on sign-in.
  *
- * Safety rule: only imports when the signed-in account currently has ZERO
- * remote pets. If the account already has pets (e.g. a returning user signing
- * in on a second device that happens to hold local junk), this is a no-op and
- * local data is left untouched as a dormant cache.
+ * Imports each local pet whose id doesn't already exist remotely. Skips
+ * (by id) pets that are already in the account — we do NOT attempt to merge
+ * logs or meds into an existing remote pet; migration is pet-level only.
  *
- * Writes in pet → member → logs order so the care_logs RLS WITH CHECK
- * (care_is_member(pet_id)) passes.
+ * Writes in pet → member → logs → medications order so RLS WITH CHECK
+ * (care_is_member(pet_id)) passes for both care_logs and care_medications.
  *
- * Returns the number of pets imported (0 if skipped or nothing to do).
+ * Returns the number of pets actually imported (0 if nothing to do).
  */
 export async function migrateLocalToRemote(): Promise<number> {
   const supabase = getSupabaseBrowser()
@@ -20,21 +19,22 @@ export async function migrateLocalToRemote(): Promise<number> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return 0
 
-  const { data: existing, error: existErr } = await supabase
+  const localPets = getAllPetsLocal()
+  if (localPets.length === 0) return 0
+
+  const { data: existingPets, error: existErr } = await supabase
     .from('care_pets')
     .select('id')
-    .limit(1)
   if (existErr) {
     console.error('Care migrate: existence check failed', existErr)
     return 0
   }
-  if (existing && existing.length > 0) return 0
+  const existingIds = new Set((existingPets ?? []).map((r: { id: string }) => r.id))
 
-  const localPets = getAllPetsLocal()
-  if (localPets.length === 0) return 0
-
+  let imported = 0
   for (const rec of localPets) {
     const p = rec.profile
+    if (existingIds.has(p.id)) continue  // already remote — skip entire pet, no merge
 
     const setup: Record<string, unknown> = {}
     if (p.insulinConcentration !== undefined) setup.insulinConcentration = p.insulinConcentration
@@ -95,8 +95,10 @@ export async function migrateLocalToRemote(): Promise<number> {
       const { error: medErr } = await supabase.from('care_medications').insert(medRows)
       if (medErr) throw new Error(`Care migrate: medications insert failed (${p.name}): ${medErr.message}`)
     }
+
+    imported++
   }
 
   clearLocalStore()
-  return localPets.length
+  return imported
 }
