@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Check, ChevronDown, ChevronUp, Plus, X } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, Cloud, Plus, X } from 'lucide-react'
 import {
   getMedications, createMedication, updateMedication, discontinueMedication,
   type CareMedication, type MedicationGivenLogEntry, type CareLogEntry,
 } from '@/lib/care-storage'
+import { useCareAuth } from './CareAuthProvider'
 
 function todayDate(): string {
   return new Date().toISOString().slice(0, 10)
@@ -321,6 +322,7 @@ interface Props {
 }
 
 export function CareMedicationSection({ petId, logs, onLogEntry, onDeleteLog }: Props) {
+  const { user, openSignIn } = useCareAuth()
   const [meds, setMeds] = useState<CareMedication[]>([])
   const [loaded, setLoaded] = useState(false)
   const [manageOpen, setManageOpen] = useState(false)
@@ -524,6 +526,21 @@ export function CareMedicationSection({ petId, logs, onLogEntry, onDeleteLog }: 
 
         {manageOpen && (
           <div className="border-t border-stone-100 px-4 py-3 space-y-3">
+            {!user && meds.length > 0 && (
+              <div className="flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2">
+                <Cloud className="w-4 h-4 text-amber-600 shrink-0" />
+                <p className="text-xs text-stone-700 flex-1 leading-snug">
+                  These meds are saved on this device only. Sign in to sync them and keep them safe.
+                </p>
+                <button
+                  type="button"
+                  onClick={openSignIn}
+                  className="text-xs font-semibold text-amber-700 hover:text-amber-800 whitespace-nowrap"
+                >
+                  Sign in
+                </button>
+              </div>
+            )}
             {activeMeds.length === 0 && !addingNew && (
               <p className="text-sm text-stone-400 py-1">No active medications tracked yet.</p>
             )}
