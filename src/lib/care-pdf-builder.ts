@@ -1,4 +1,5 @@
 import {
+  getPet,
   type PetProfile, type CareLogEntry,
   type DiabetesLogEntry, type CHFLogEntry, type CKDLogEntry,
   type CushingsLogEntry, type OALogEntry, type EpilepsyLogEntry,
@@ -11,8 +12,6 @@ import {
   evaluateIBDRisk, evaluateCDSRisk, computeDISHAAScore, evaluateDMRisk,
 } from './care-risk-engine'
 import type { PdfReportData, PdfLogRow } from './care-pdf-types'
-
-const STORAGE_KEY = 'tailcue_care_data_v2'
 
 const CONDITION_LABELS: Record<PetProfile['condition'], string> = {
   feline_diabetes: 'Feline Diabetes',
@@ -248,22 +247,11 @@ function getPrimaryMetricValue(profile: PetProfile, entry: CareLogEntry): number
   }
 }
 
-export function buildPdfReportData(
+export async function buildPdfReportData(
   petId: string,
   rangedays: 14 | 30 | 60 | 90 | 'all',
-): PdfReportData | null {
-  if (typeof window === 'undefined') return null
-
-  let store: { pets: Record<string, { profile: PetProfile; logs: CareLogEntry[] }> }
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    store = JSON.parse(raw)
-  } catch {
-    return null
-  }
-
-  const record = store.pets?.[petId]
+): Promise<PdfReportData | null> {
+  const record = await getPet(petId)
   if (!record) return null
 
   const { profile, logs: allLogs } = record

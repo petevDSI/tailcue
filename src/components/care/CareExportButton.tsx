@@ -16,7 +16,7 @@ export function CareExportButton({ petId }: Props) {
   async function handleExport() {
     setLoading(true)
     try {
-      const data = buildPdfReportData(petId, rangedays)
+      const data = await buildPdfReportData(petId, rangedays)
       if (!data) {
         alert('No data found for this pet. Have you logged any entries?')
         return

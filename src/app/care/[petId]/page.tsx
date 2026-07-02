@@ -9,10 +9,10 @@ import {
 import Link from 'next/link'
 import {
   Cat, Dog, Plus, Minus, Trash2, ArrowLeft, ExternalLink,
-  ChevronDown, ChevronUp, Settings, X, Check,
+  ChevronDown, ChevronUp, Settings, X, Check, Pill, ChevronRight,
 } from 'lucide-react'
 import {
-  getPet, getAllPets, addLogEntry, deleteLogEntry,
+  getPet, getAllPets, addLogEntry, deleteLogEntry, getMedications,
   startNewVial, updateInsulinDefaults, updateCHFBaseline,
   type CareLogEntry, type DiabetesLogEntry, type CHFLogEntry,
   type CKDLogEntry, type CushingsLogEntry, type OALogEntry, type EpilepsyLogEntry,
@@ -33,7 +33,6 @@ import {
 } from '@/lib/care-risk-engine'
 import { estimateInsulinSupply } from '@/lib/care-supply-estimator'
 import { CareExportButton } from '@/components/care/CareExportButton'
-import { CareMedicationSection } from '@/components/care/CareMedicationSection'
 import { CareAccountControl } from '@/components/care/CareAccountControl'
 import { CareSyncNudge } from '@/components/care/CareSyncNudge'
 import { CareShareButton } from '@/components/care/CareShareButton'
@@ -2161,6 +2160,38 @@ const CONDITION_LABELS: Record<PetProfile['condition'], string> = {
   degenerative_myelopathy: 'Deg. Myelopathy',
 }
 
+// ── Medication Summary Card ────────────────────────────────────────────────
+
+function MedicationSummaryCard({ petId }: { petId: string }) {
+  const [count, setCount] = useState<number | null>(null)
+
+  useEffect(() => {
+    getMedications(petId).then((meds) => {
+      setCount(meds.filter((m) => !m.endedAt).length)
+    })
+  }, [petId])
+
+  return (
+    <Link
+      href={`/care/${petId}/medications`}
+      className="bg-card border-[0.5px] border-border rounded-2xl p-4 flex items-center justify-between hover:bg-secondary/50 transition-colors"
+    >
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
+          <Pill className="w-4 h-4 text-primary" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-foreground">Medications</p>
+          <p className="text-xs text-warm-muted">
+            {count === null ? 'Loading…' : count === 0 ? 'None active' : `${count} active`}
+          </p>
+        </div>
+      </div>
+      <ChevronRight className="w-4 h-4 text-warm-muted shrink-0" />
+    </Link>
+  )
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────
 
 function Dashboard({
@@ -2290,7 +2321,7 @@ function Dashboard({
 
   if (removed) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center md:pl-[220px]">
         <div className="w-full max-w-sm">
           <div className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center mx-auto mb-4">
             <Check className="w-6 h-6 text-stone-400" />
@@ -2311,7 +2342,7 @@ function Dashboard({
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col md:pl-[220px]">
       <header className="bg-card border-b border-border px-4 py-3 flex items-center gap-3">
         <Link
           href="/"
@@ -2389,45 +2420,7 @@ function Dashboard({
 
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-6 pb-24 sm:pb-8">
 
-        {/* ── Reassurance header ── */}
-        <div className="flex items-center gap-3">
-          <div className="w-[46px] h-[46px] rounded-full bg-calm flex items-center justify-center shrink-0">
-            <SpeciesIcon species={profile.species} className="w-5 h-5 text-calm-foreground" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[17px] font-medium text-foreground leading-tight">{profile.name}</p>
-            <p className="text-[13px] text-warm-muted">
-              {profile.species === 'dog' ? 'Dog' : 'Cat'}
-              {profile.ageYears ? ` · ${profile.ageYears}y` : ''}
-              {' · '}{CONDITION_LABELS[condition]}
-            </p>
-          </div>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-calm text-calm-foreground text-xs font-medium shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-calm-dot" />
-            {statusWord}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <Link
-            href={`/care/${petId}/ate`}
-            className="inline-flex items-center gap-2 rounded-full border-[0.5px] border-attn-border bg-attn px-3 py-2 min-h-[44px] text-sm font-medium text-attn-foreground hover:opacity-90 transition-opacity"
-            title="My pet ate something and I'm not sure it's okay"
-          >
-            <span aria-hidden>⚠</span>
-            My pet ate something
-          </Link>
-          <CareExportButton petId={petId} />
-        </div>
-
-        <CareMedicationSection
-          petId={petId}
-          condition={condition}
-          species={profile.species}
-          logs={logs}
-          onLogEntry={onNewLog}
-          onDeleteLog={onDeleteLog}
-        />
+        <MedicationSummaryCard petId={petId} />
 
         {/* ── Epilepsy dashboard ── */}
         {isEpilepsy && (
@@ -2853,6 +2846,37 @@ function Dashboard({
             </ul>
           </div>
         )}
+
+        {/* ── Reassurance header ── */}
+        <div className="flex items-center gap-3">
+          <div className="w-[46px] h-[46px] rounded-full bg-calm flex items-center justify-center shrink-0">
+            <SpeciesIcon species={profile.species} className="w-5 h-5 text-calm-foreground" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[17px] font-medium text-foreground leading-tight">{profile.name}</p>
+            <p className="text-[13px] text-warm-muted">
+              {profile.species === 'dog' ? 'Dog' : 'Cat'}
+              {profile.ageYears ? ` · ${profile.ageYears}y` : ''}
+              {' · '}{CONDITION_LABELS[condition]}
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-calm text-calm-foreground text-xs font-medium shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-calm-dot" />
+            {statusWord}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <Link
+            href={`/care/${petId}/ate`}
+            className="inline-flex items-center gap-2 rounded-full border-[0.5px] border-attn-border bg-attn px-3 py-2 min-h-[44px] text-sm font-medium text-attn-foreground hover:opacity-90 transition-opacity"
+            title="My pet ate something and I'm not sure it's okay"
+          >
+            <span aria-hidden>⚠</span>
+            My pet ate something
+          </Link>
+          <CareExportButton petId={petId} />
+        </div>
 
         <p className="text-xs text-stone-400 text-center leading-relaxed px-2">{disclaimer}</p>
       </main>
