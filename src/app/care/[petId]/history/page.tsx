@@ -1,13 +1,10 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Cat, Dog, Trash2 } from 'lucide-react'
-import {
-  ComposedChart, LineChart, Line, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, ReferenceLine, ResponsiveContainer,
-} from 'recharts'
+import { TrendChart } from '@/components/care/TrendChart'
 import {
   getPet, deleteLogEntry,
   type CareLogEntry, type DiabetesLogEntry, type CHFLogEntry,
@@ -49,228 +46,6 @@ function appetiteShortLabel(appetite: string): string {
 function lethargyStripColor(level: number): string {
   if (level >= 4) return 'bg-amber-100 text-amber-700 border-amber-200'
   return 'bg-stone-100 text-stone-500 border-stone-200'
-}
-
-// ── Chart data logic ──────────────────────────────────────────────────────
-
-type ChartRange = '24h' | '7d' | '30d' | '90d'
-
-interface PointsResult {
-  mode: 'points'
-  data: { timestamp: string; value: number }[]
-}
-
-interface DailyPoint {
-  date: string
-  avg: number
-  min: number
-  max: number
-}
-
-interface DailyResult {
-  mode: 'daily'
-  data: DailyPoint[]
-}
-
-const MS_PER_RANGE: Record<ChartRange, number> = {
-  '24h': 1  * 24 * 60 * 60 * 1000,
-  '7d':  7  * 24 * 60 * 60 * 1000,
-  '30d': 30 * 24 * 60 * 60 * 1000,
-  '90d': 90 * 24 * 60 * 60 * 1000,
-}
-
-function getChartDataForRange(
-  logs: CareLogEntry[],
-  range: ChartRange,
-  getValue: (l: CareLogEntry) => number,
-): PointsResult | DailyResult {
-  const cutoff = Date.now() - MS_PER_RANGE[range]
-  const filtered = logs.filter((l) => new Date(l.timestamp).getTime() >= cutoff)
-
-  if (range === '24h' || range === '7d') {
-    return {
-      mode: 'points',
-      data: filtered
-        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-        .map((l) => ({ timestamp: l.timestamp, value: getValue(l) })),
-    }
-  }
-
-  const byDate = new Map<string, number[]>()
-  for (const l of filtered) {
-    const vals = byDate.get(l.date) ?? []
-    vals.push(getValue(l))
-    byDate.set(l.date, vals)
-  }
-
-  const data: DailyPoint[] = Array.from(byDate.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, vals]) => ({
-      date,
-      avg: Math.round(vals.reduce((s, v) => s + v, 0) / vals.length),
-      min: Math.min(...vals),
-      max: Math.max(...vals),
-    }))
-
-  return { mode: 'daily', data }
-}
-
-const CHART_RANGES: ChartRange[] = ['24h', '7d', '30d', '90d']
-
-// ── Trend Chart ───────────────────────────────────────────────────────────
-
-interface RefLine {
-  y: number
-  stroke: string
-  label: string
-}
-
-function TrendChart({
-  logs,
-  getValue,
-  unit,
-  refLines,
-}: {
-  logs: CareLogEntry[]
-  getValue: (l: CareLogEntry) => number
-  unit: string
-  refLines: RefLine[]
-}) {
-  const [range, setRange] = useState<ChartRange>('7d')
-  const result = useMemo(() => getChartDataForRange(logs, range, getValue), [logs, range, getValue])
-  const isEmpty = result.data.length < 2
-
-  return (
-    <div className="bg-white rounded-xl border border-stone-200 p-4">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Trend</p>
-        <div className="flex rounded-xl overflow-hidden border border-stone-300">
-          {CHART_RANGES.map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => setRange(r)}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                range === r
-                  ? 'bg-amber-500 text-white'
-                  : 'bg-white text-stone-600 hover:bg-stone-50'
-              }`}
-            >
-              {r}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {isEmpty ? (
-        <p className="text-sm text-stone-400 py-6 text-center">
-          Not enough data yet for this range.
-        </p>
-      ) : result.mode === 'points' ? (
-        <ResponsiveContainer width="100%" height={180}>
-          <LineChart data={result.data} margin={{ top: 8, right: 8, bottom: 0, left: -10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
-            <XAxis
-              dataKey="timestamp"
-              type="category"
-              tick={{ fontSize: 10, fill: '#a8a29e' }}
-              tickFormatter={(ts: string) =>
-                new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-              }
-              interval="preserveStartEnd"
-            />
-            <YAxis tick={{ fontSize: 10, fill: '#a8a29e' }} domain={['auto', 'auto']} />
-            <Tooltip
-              contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e7e5e4' }}
-              formatter={(value) => [`${value} ${unit}`, 'Reading']}
-              labelFormatter={(ts) => {
-                const d = new Date(String(ts))
-                return (
-                  d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
-                  ', ' +
-                  d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-                )
-              }}
-              labelStyle={{ color: '#78716c', marginBottom: 4 }}
-            />
-            {refLines.map((rl) => (
-              <ReferenceLine
-                key={rl.y}
-                y={rl.y}
-                stroke={rl.stroke}
-                strokeDasharray="4 2"
-                label={{ value: rl.label, fontSize: 9, fill: rl.stroke, position: 'right' }}
-              />
-            ))}
-            <Line
-              type="monotone"
-              dataKey="value"
-              stroke="#f59e0b"
-              strokeWidth={2}
-              dot={{ r: 3, fill: '#f59e0b', strokeWidth: 0 }}
-              activeDot={{ r: 5 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      ) : (
-        <ResponsiveContainer width="100%" height={180}>
-          <ComposedChart data={result.data} margin={{ top: 8, right: 8, bottom: 0, left: -10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
-            <XAxis
-              dataKey="date"
-              type="category"
-              tick={{ fontSize: 10, fill: '#a8a29e' }}
-              tickFormatter={(d: string) =>
-                new Date(`${d}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-              }
-              interval="preserveStartEnd"
-            />
-            <YAxis tick={{ fontSize: 10, fill: '#a8a29e' }} domain={['auto', 'auto']} />
-            <Tooltip
-              contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e7e5e4' }}
-              formatter={(value, name) => {
-                if (name === 'Range') {
-                  const arr = value as [number, number]
-                  return [`${arr[0]}–${arr[1]} ${unit}`, 'Range']
-                }
-                return [`${value} ${unit}`, 'Daily Avg']
-              }}
-              labelFormatter={(d) =>
-                new Date(`${String(d)}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-              }
-              labelStyle={{ color: '#78716c', marginBottom: 4 }}
-            />
-            {refLines.map((rl) => (
-              <ReferenceLine
-                key={rl.y}
-                y={rl.y}
-                stroke={rl.stroke}
-                strokeDasharray="4 2"
-                label={{ value: rl.label, fontSize: 9, fill: rl.stroke, position: 'right' }}
-              />
-            ))}
-            <Area
-              type="monotone"
-              dataKey={(d: DailyPoint) => [d.min, d.max]}
-              name="Range"
-              fill="#f59e0b"
-              fillOpacity={0.15}
-              stroke="none"
-            />
-            <Line
-              type="monotone"
-              dataKey="avg"
-              name="Daily Avg"
-              stroke="#f59e0b"
-              strokeWidth={2}
-              dot={{ r: 3, fill: '#f59e0b', strokeWidth: 0 }}
-              activeDot={{ r: 5 }}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
-      )}
-    </div>
-  )
 }
 
 // ── 7-Day Appetite Strip ──────────────────────────────────────────────────
@@ -1034,7 +809,7 @@ export default function PetHistoryPage() {
   const remaining = logs.length - visible
 
   return (
-    <div className="min-h-screen bg-[#FFFBF0] flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col md:pl-[220px]">
       <header className="bg-white border-b border-stone-200 px-4 py-3 flex items-center gap-3">
         <Link
           href={`/care/${petId}`}
