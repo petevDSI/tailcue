@@ -24,6 +24,15 @@
     --input: 20 6% 83%;                 /* stone-300 */
     --ring: 38 92% 50%;                 /* amber for focus rings */
     --radius: 0.75rem;                  /* upgrade from 0.5rem */
+
+    --calm: 152 45% 92%;            /* #E4F3EC reassurance-green bg */
+    --calm-foreground: 165 76% 24%; /* #0F6E56 text/icon on calm */
+    --calm-dot: 162 69% 37%;        /* #1D9E75 status dot / success */
+    --attn: 37 74% 94%;             /* #FBF1E4 soft-attention bg */
+    --attn-border: 39 68% 82%;      /* #EFD9B0 */
+    --attn-foreground: 33 76% 30%;  /* #8A5A12 */
+    --border-soft: 44 55% 89%;      /* #F0E8D6 inner dividers */
+    --warm-muted: 42 15% 47%;       /* #8A7E67 warm secondary text */
   }
 
   .dark {

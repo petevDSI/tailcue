@@ -46,6 +46,18 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        calm: {
+          DEFAULT: "hsl(var(--calm))",
+          foreground: "hsl(var(--calm-foreground))",
+          dot: "hsl(var(--calm-dot))",
+        },
+        attn: {
+          DEFAULT: "hsl(var(--attn))",
+          border: "hsl(var(--attn-border))",
+          foreground: "hsl(var(--attn-foreground))",
+        },
+        "border-soft": "hsl(var(--border-soft))",
+        "warm-muted": "hsl(var(--warm-muted))",
       },
       borderRadius: {
         lg: "var(--radius)",

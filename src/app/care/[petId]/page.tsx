@@ -437,7 +437,7 @@ function SupplyCard({
 
   if (showForm) {
     return (
-      <div className="bg-white rounded-xl border border-stone-200 p-4">
+      <div className="bg-card border-[0.5px] border-border rounded-2xl p-4">
         <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-4">Start New Vial</p>
         <NewVialForm
           profile={profile}
@@ -450,7 +450,7 @@ function SupplyCard({
 
   if (supply.status === 'no_vial_started') {
     return (
-      <div className="bg-white rounded-xl border border-stone-200 p-4">
+      <div className="bg-card border-[0.5px] border-border rounded-2xl p-4">
         <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">Insulin Supply</p>
         <p className="text-sm font-medium text-stone-700 mb-1">Track your insulin supply</p>
         <p className="text-xs text-stone-400 mb-3">
@@ -468,7 +468,7 @@ function SupplyCard({
 
   if (supply.status === 'insufficient_data' || supply.status === 'unknown') {
     return (
-      <div className="bg-white rounded-xl border border-stone-200 p-4">
+      <div className="bg-card border-[0.5px] border-border rounded-2xl p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1">Insulin Supply</p>
@@ -524,7 +524,7 @@ function SupplyCard({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-stone-200 p-4">
+    <div className="bg-card border-[0.5px] border-border rounded-2xl p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1">Insulin Supply</p>
@@ -2148,6 +2148,19 @@ function DMLogForm({ onSave, petName }: { onSave: (entry: CareLogEntry) => void;
   )
 }
 
+const CONDITION_LABELS: Record<PetProfile['condition'], string> = {
+  feline_diabetes: 'Feline Diabetes',
+  chf: 'Heart Disease',
+  chronic_kidney_disease: 'Kidney Disease',
+  cushings_disease: "Cushing's Disease",
+  osteoarthritis: 'Osteoarthritis',
+  epilepsy: 'Epilepsy',
+  feline_hyperthyroidism: 'Hyperthyroidism',
+  ibd: 'IBD',
+  cognitive_dysfunction: 'Cognitive Dysfunction',
+  degenerative_myelopathy: 'Deg. Myelopathy',
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────
 
 function Dashboard({
@@ -2255,8 +2268,15 @@ function Dashboard({
   const now = Date.now()
   const ms24h = 24 * 60 * 60 * 1000
   const ms30d = 30 * 24 * 60 * 60 * 1000
-  const seizures24h = epilepsyLogs.filter((l) => now - new Date(l.timestamp).getTime() <= ms24h).length
   const seizures30d = epilepsyLogs.filter((l) => now - new Date(l.timestamp).getTime() <= ms30d).length
+
+  const lastSeizureTs = epilepsyLogs[0]?.timestamp
+  const daysSinceSeizure = lastSeizureTs
+    ? Math.floor((now - new Date(lastSeizureTs).getTime()) / ms24h)
+    : null
+  const statusWord = isEpilepsy
+    ? (seizures30d === 0 ? 'Stable' : 'Monitoring')
+    : (!latestRisk || latestRisk.level === 'stable' ? 'Stable' : 'Monitoring')
 
   const recentLogs = logs.slice(0, 5)
   const diabetesLogs = logs.filter((l): l is DiabetesLogEntry => l.condition === 'feline_diabetes')
@@ -2270,7 +2290,7 @@ function Dashboard({
 
   if (removed) {
     return (
-      <div className="min-h-screen bg-[#FFFBF0] flex flex-col items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
         <div className="w-full max-w-sm">
           <div className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center mx-auto mb-4">
             <Check className="w-6 h-6 text-stone-400" />
@@ -2291,8 +2311,8 @@ function Dashboard({
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFBF0] flex flex-col">
-      <header className="bg-white border-b border-stone-200 px-4 py-3 flex items-center gap-3">
+    <div className="min-h-screen bg-background flex flex-col">
+      <header className="bg-card border-b border-border px-4 py-3 flex items-center gap-3">
         <Link
           href="/"
           className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors shrink-0"
@@ -2369,19 +2389,35 @@ function Dashboard({
 
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-6 pb-24 sm:pb-8">
 
-        <div className="flex justify-end">
-          <CareExportButton petId={petId} />
+        {/* ── Reassurance header ── */}
+        <div className="flex items-center gap-3">
+          <div className="w-[46px] h-[46px] rounded-full bg-calm flex items-center justify-center shrink-0">
+            <SpeciesIcon species={profile.species} className="w-5 h-5 text-calm-foreground" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[17px] font-medium text-foreground leading-tight">{profile.name}</p>
+            <p className="text-[13px] text-warm-muted">
+              {profile.species === 'dog' ? 'Dog' : 'Cat'}
+              {profile.ageYears ? ` · ${profile.ageYears}y` : ''}
+              {' · '}{CONDITION_LABELS[condition]}
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-calm text-calm-foreground text-xs font-medium shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-calm-dot" />
+            {statusWord}
+          </span>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between">
           <Link
             href={`/care/${petId}/ate`}
-            className="inline-flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2 min-h-[44px] text-sm font-medium text-stone-600 hover:border-amber-300 hover:bg-amber-50/30 transition-colors"
+            className="inline-flex items-center gap-2 rounded-full border-[0.5px] border-attn-border bg-attn px-3 py-2 min-h-[44px] text-sm font-medium text-attn-foreground hover:opacity-90 transition-opacity"
             title="My pet ate something and I'm not sure it's okay"
           >
             <span aria-hidden>⚠</span>
             My pet ate something
           </Link>
+          <CareExportButton petId={petId} />
         </div>
 
         <CareMedicationSection
@@ -2402,43 +2438,42 @@ function Dashboard({
                 <p className="text-sm font-medium text-red-900">{latestRisk.message}</p>
               </div>
             )}
-            <div className="bg-white rounded-xl border border-stone-200 p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Seizure Activity</p>
-                  <div className="flex gap-6 mt-2">
-                    <div>
-                      <p className="text-2xl font-bold text-stone-900">{seizures24h}</p>
-                      <p className="text-xs text-stone-400">last 24 hours</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-stone-900">{seizures30d}</p>
-                      <p className="text-xs text-stone-400">last 30 days</p>
-                    </div>
-                  </div>
-                </div>
-                {latestRisk && latestRisk.level !== 'critical' && (
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${latestRisk.badgeColor}`}>
-                    {latestRisk.level.charAt(0).toUpperCase() + latestRisk.level.slice(1)}
-                  </span>
-                )}
+            {/* Stat tiles */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-card border-[0.5px] border-border rounded-xl p-3">
+                <p className="text-[12px] text-warm-muted mb-1.5">Days seizure-free</p>
+                <p className="text-[22px] font-medium text-foreground leading-none">
+                  {daysSinceSeizure !== null ? daysSinceSeizure : '—'}
+                </p>
               </div>
-              {latestRisk && latestRisk.level !== 'critical' && (
-                <p className="text-sm text-stone-600">{latestRisk.message}</p>
-              )}
+              <div className="bg-card border-[0.5px] border-border rounded-xl p-3">
+                <p className="text-[12px] text-warm-muted mb-1.5">Last 30 days</p>
+                <p className="text-[22px] font-medium text-foreground leading-none">
+                  {seizures30d}<span className="text-[13px] text-warm-muted ml-0.5"> sz</span>
+                </p>
+              </div>
+              <div className="bg-card border-[0.5px] border-border rounded-xl p-3">
+                <p className="text-[12px] text-warm-muted mb-1.5">Total logged</p>
+                <p className="text-[22px] font-medium text-foreground leading-none">
+                  {epilepsyLogs.length}
+                </p>
+              </div>
             </div>
+            {latestRisk && latestRisk.level !== 'critical' && (
+              <p className="text-sm text-muted-foreground">{latestRisk.message}</p>
+            )}
             {showEpilepsyForm ? (
               <div>
                 <EpilepsyLogForm onSave={(e) => { onNewLog(e); setShowEpilepsyForm(false) }} />
                 <button onClick={() => setShowEpilepsyForm(false)}
-                  className="mt-2 w-full text-xs text-stone-400 hover:text-stone-600 transition-colors py-2">
+                  className="mt-2 w-full text-xs text-warm-muted hover:text-foreground transition-colors py-2">
                   Cancel
                 </button>
               </div>
             ) : (
               <button onClick={() => setShowEpilepsyForm(true)}
-                className="w-full rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold py-4 text-base transition-colors">
-                + Log a Seizure
+                className="w-full rounded-full bg-primary hover:opacity-90 text-primary-foreground font-medium py-4 text-base transition-opacity">
+                Log a seizure
               </button>
             )}
           </>
@@ -2448,7 +2483,7 @@ function Dashboard({
         {isWeekly && (
           <>
             {latestRisk && latestLog && (
-              <div className="bg-white rounded-xl border border-stone-200 p-4">
+              <div className="bg-card border-[0.5px] border-border rounded-2xl p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs text-stone-400 mb-1">Latest weekly check-in</p>
@@ -2488,7 +2523,7 @@ function Dashboard({
             {isCDS && <CDSLogForm onSave={onNewLog} petName={profile.name} />}
             {isDM && <DMLogForm onSave={onNewLog} petName={profile.name} />}
             {recentLogs.length > 0 && (
-              <div className="bg-white rounded-xl border border-stone-200 p-4">
+              <div className="bg-card border-[0.5px] border-border rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Recent Check-Ins</p>
                   {logs.length > 5 && (
@@ -2498,7 +2533,7 @@ function Dashboard({
                     </Link>
                   )}
                 </div>
-                <ul className="divide-y divide-stone-100">
+                <ul className="divide-y divide-border-soft">
                   {recentLogs.map((log) => {
                     const weeklyRisk = (() => {
                       if (log.condition === 'cognitive_dysfunction') return evaluateCDSRisk(log as CDSLogEntry)
@@ -2549,7 +2584,7 @@ function Dashboard({
 
         {/* ── Daily check-in conditions (non-epilepsy, non-weekly) ── */}
         {!isEpilepsy && !isWeekly && latestRisk && latestLog && (
-          <div className="bg-white rounded-xl border border-stone-200 p-4">
+          <div className="bg-card border-[0.5px] border-border rounded-2xl p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs text-stone-400 mb-1">Latest reading</p>
@@ -2626,7 +2661,7 @@ function Dashboard({
         {isIBD && <IBDLogForm onSave={onNewLog} petName={profile.name} />}
 
         {!isEpilepsy && !isWeekly && chartData.length >= 2 && (
-          <div className="bg-white rounded-xl border border-stone-200 p-4">
+          <div className="bg-card border-[0.5px] border-border rounded-2xl p-4">
             <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-3">7-Day Trend</p>
             <ResponsiveContainer width="100%" height={180}>
               <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -10 }}>
@@ -2681,7 +2716,7 @@ function Dashboard({
 
         {/* Recent readings — daily non-epilepsy conditions */}
         {!isEpilepsy && !isWeekly && recentLogs.length > 0 && (
-          <div className="bg-white rounded-xl border border-stone-200 p-4">
+          <div className="bg-card border-[0.5px] border-border rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Recent Readings</p>
               {logs.length > 5 && (
@@ -2693,7 +2728,7 @@ function Dashboard({
                 </Link>
               )}
             </div>
-            <ul className="divide-y divide-stone-100">
+            <ul className="divide-y divide-border-soft">
               {recentLogs.map((log) => {
                 const risk = (() => {
                   switch (log.condition) {
@@ -2781,7 +2816,7 @@ function Dashboard({
 
         {/* Epilepsy: seizure event list */}
         {isEpilepsy && epilepsyLogs.length > 0 && (
-          <div className="bg-white rounded-xl border border-stone-200 p-4">
+          <div className="bg-card border-[0.5px] border-border rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Seizure History</p>
               {epilepsyLogs.length > 5 && (
@@ -2791,7 +2826,7 @@ function Dashboard({
                 </Link>
               )}
             </div>
-            <ul className="divide-y divide-stone-100">
+            <ul className="divide-y divide-border-soft">
               {epilepsyLogs.slice(0, 5).map((log) => (
                 <li key={log.id} className="py-3">
                   <div className="flex items-center gap-2 flex-wrap mb-0.5">
