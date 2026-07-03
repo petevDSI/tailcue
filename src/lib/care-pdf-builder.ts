@@ -8,8 +8,9 @@ import {
 } from './care-storage'
 import {
   evaluateGlucoseRisk, evaluateCHFRisk, evaluateCKDRisk, evaluateCushingsRisk,
-  evaluateOARisk, evaluateEpilepsyRisk, evaluateHyperthyroidismRisk,
+  evaluateOARisk, evaluateHyperthyroidismRisk,
   evaluateIBDRisk, evaluateCDSRisk, computeDISHAAScore, evaluateDMRisk,
+  type RiskAssessment,
 } from './care-risk-engine'
 import type { PdfReportData, PdfLogRow } from './care-pdf-types'
 
@@ -47,7 +48,36 @@ function fmtIsoDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-function getRiskForEntry(profile: PetProfile, entry: Exclude<CareLogEntry, MedicationGivenLogEntry>, allLogs: CareLogEntry[]) {
+function classifySingleSeizure(entry: EpilepsyLogEntry): RiskAssessment {
+  if (entry.durationMinutes >= 5) {
+    return {
+      level: 'critical',
+      message: 'Seizure lasted 5+ minutes (status epilepticus range) — discuss with your vet.',
+      badgeColor: 'bg-red-100 text-red-800 border-red-300',
+    }
+  }
+  if (entry.severity === 'severe' || entry.postIctalMinutes >= 30) {
+    return {
+      level: 'caution',
+      message: 'Severe seizure and/or prolonged recovery — worth flagging to your vet.',
+      badgeColor: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    }
+  }
+  if (entry.severity === 'moderate') {
+    return {
+      level: 'caution',
+      message: 'Moderate seizure logged.',
+      badgeColor: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    }
+  }
+  return {
+    level: 'stable',
+    message: 'Mild seizure logged.',
+    badgeColor: 'bg-green-100 text-green-800 border-green-300',
+  }
+}
+
+function getRiskForEntry(profile: PetProfile, entry: Exclude<CareLogEntry, MedicationGivenLogEntry>) {
   switch (entry.condition) {
     case 'feline_diabetes': return evaluateGlucoseRisk((entry as DiabetesLogEntry).bloodGlucose)
     case 'chf': {
@@ -57,10 +87,7 @@ function getRiskForEntry(profile: PetProfile, entry: Exclude<CareLogEntry, Medic
     case 'chronic_kidney_disease': return evaluateCKDRisk(entry as CKDLogEntry)
     case 'cushings_disease': return evaluateCushingsRisk(entry as CushingsLogEntry)
     case 'osteoarthritis': return evaluateOARisk(entry as OALogEntry)
-    case 'epilepsy': {
-      const eLogs = allLogs.filter((l): l is EpilepsyLogEntry => l.condition === 'epilepsy')
-      return evaluateEpilepsyRisk(eLogs)
-    }
+    case 'epilepsy': return classifySingleSeizure(entry as EpilepsyLogEntry)
     case 'feline_hyperthyroidism': return evaluateHyperthyroidismRisk(entry as HyperthyroidismLogEntry)
     case 'ibd': return evaluateIBDRisk(entry as IBDLogEntry)
     case 'cognitive_dysfunction': return evaluateCDSRisk(entry as CDSLogEntry)
@@ -68,8 +95,8 @@ function getRiskForEntry(profile: PetProfile, entry: Exclude<CareLogEntry, Medic
   }
 }
 
-function buildLogRow(profile: PetProfile, entry: Exclude<CareLogEntry, MedicationGivenLogEntry>, allLogs: CareLogEntry[]): PdfLogRow {
-  const risk = getRiskForEntry(profile, entry, allLogs)
+function buildLogRow(profile: PetProfile, entry: Exclude<CareLogEntry, MedicationGivenLogEntry>): PdfLogRow {
+  const risk = getRiskForEntry(profile, entry)
   const riskLevel = risk.displayLabel ?? (risk.level.charAt(0).toUpperCase() + risk.level.slice(1))
   let primaryMetric = '—'
   let primaryLabel = 'Reading'
@@ -268,7 +295,7 @@ export async function buildPdfReportData(
     : rangedays === 'all' ? profile.createdAt : new Date(cutoff).toISOString()
   const rangeEnd = new Date().toISOString()
 
-  const logRows = filtered.map((e) => buildLogRow(profile, e, allLogs))
+  const logRows = filtered.map((e) => buildLogRow(profile, e))
 
   const metrics = filtered
     .map((e) => getPrimaryMetricValue(profile, e))
@@ -276,7 +303,7 @@ export async function buildPdfReportData(
 
   const riskSummary = { stableDays: 0, cautionDays: 0, criticalDays: 0, totalDays: filtered.length }
   for (const entry of filtered) {
-    const risk = getRiskForEntry(profile, entry, allLogs)
+    const risk = getRiskForEntry(profile, entry)
     if (risk.level === 'stable') riskSummary.stableDays++
     else if (risk.level === 'caution') riskSummary.cautionDays++
     else riskSummary.criticalDays++
