@@ -214,8 +214,12 @@ export interface ScoreGameResult {
   suSideIsHome: boolean
   atsScore: number | null
   atsSideIsHome: boolean | null
+  /** P(the picked ATS side covers), same normal-margin model as winProbHome, re-centered on the market spread. Null when no market spread yet. */
+  atsProbSide: number | null
   totScore: number | null
   totSideIsOver: boolean | null
+  /** P(the picked total side hits), same model as atsProbSide applied to the total. Approximation: reuses margin SIGMA for total variance (no separately-fitted total-variance constant exists yet). Null when no market total yet. */
+  totProbSide: number | null
   windPenalty: number
 }
 
@@ -293,6 +297,17 @@ export function scoreGame(g: ScoreGameInput, settings: ScoreSettings = DEFAULT_S
     )
   }
 
+  // Same normal-margin model already used for the SU win probability
+  // (winProbHome = normCdf(projMarginHome, SIGMA)), just re-centered on the
+  // market spread instead of a pick'em line: P(picked side covers) =
+  // normCdf(|spreadEdgeHome|, SIGMA). This reuses the model's own edge
+  // number through the exact same, already-reviewed distribution — not a
+  // new fabricated probability — so it's safe to use for real parlay math.
+  let atsProbSide: number | null = null
+  if (spreadEdgeHome !== null) {
+    atsProbSide = normCdf(Math.abs(spreadEdgeHome), SIGMA)
+  }
+
   // ---- Totals ----
   let totScore: number | null = null
   let totSideIsOver: boolean | null = null
@@ -302,6 +317,15 @@ export function scoreGame(g: ScoreGameInput, settings: ScoreSettings = DEFAULT_S
     if (windPenalty > 0) windBonus = !totSideIsOver ? 6 : -6
     const divTotalAdj = g.isDivisional ? (!totSideIsOver ? 4 : -4) : 0
     totScore = clamp(50 + Math.min(Math.abs(totalEdge), 8) * 4.5 + windBonus + divTotalAdj, 0, 100)
+  }
+
+  // Same treatment as atsProbSide above, applied to the total. APPROXIMATION:
+  // reuses the margin-of-victory SIGMA for total variance too (no
+  // separately-fitted total-variance constant exists yet) — treat
+  // totProbSide as directionally honest, not precisely calibrated.
+  let totProbSide: number | null = null
+  if (totalEdge !== null) {
+    totProbSide = normCdf(Math.abs(totalEdge), SIGMA)
   }
 
   // ---- SU / Moneyline ----
@@ -332,8 +356,10 @@ export function scoreGame(g: ScoreGameInput, settings: ScoreSettings = DEFAULT_S
     suSideIsHome,
     atsScore,
     atsSideIsHome,
+    atsProbSide,
     totScore,
     totSideIsOver,
+    totProbSide,
     windPenalty,
   }
 }

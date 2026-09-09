@@ -153,6 +153,18 @@ export interface PropCandidate {
   dkPrice: number | null
   fdPrice: number | null
   notes: string[]
+  /**
+   * A real probability for the picked side, for parlay math — never
+   * fabricated from the 0-100 score. Two honest sources, in priority order:
+   *  1. Both books price the same line: the cross-book no-vig consensus
+   *     (the same de-vig used for the price-disagreement signal above).
+   *  2. Only one book prices it: that book's own vig-INCLUDED implied
+   *     probability (a real number, just not de-vigged — slightly
+   *     pessimistic since it still carries the house edge).
+   * Null when the books disagree on the number itself — there's no single
+   * line to attach one probability to.
+   */
+  fairProb: number | null
 }
 
 export interface ScorePropInput {
@@ -248,6 +260,17 @@ export function scoreProp(input: ScorePropInput): PropCandidate | null {
   const score = clamp(side === 'Over' ? totalOver : totalUnder, 0, 100)
   const line = (dk ?? fd)!.line
 
+  // fairProb: see PropCandidate's doc comment for what this can and can't be.
+  let fairProb: number | null = null
+  if (dk && fd && dk.line === fd.line && dkFairOver !== null && fdFairOver !== null) {
+    const consensusFairOver = (dkFairOver + fdFairOver) / 2
+    fairProb = side === 'Over' ? consensusFairOver : 1 - consensusFairOver
+  } else if (dk || fd) {
+    const book = (dk ?? fd)!
+    const price = side === 'Over' ? book.overPrice : book.underPrice
+    fairProb = impliedProbFromAmerican(price)
+  }
+
   return {
     gameId: merged.gameId,
     player: merged.player,
@@ -258,5 +281,6 @@ export function scoreProp(input: ScorePropInput): PropCandidate | null {
     dkPrice: dk ? (side === 'Over' ? dk.overPrice : dk.underPrice) : null,
     fdPrice: fd ? (side === 'Over' ? fd.overPrice : fd.underPrice) : null,
     notes,
+    fairProb,
   }
 }

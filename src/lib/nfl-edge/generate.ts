@@ -187,7 +187,7 @@ export async function generateRecommendationsForWeek(seasonYear: number, week: n
           description: `${label} — ${sideName} ${spreadForSide! >= 0 ? '+' : ''}${spreadForSide}`,
           side: sideName,
           modelScore: result.atsScore,
-          modelProb: null,
+          modelProb: result.atsProbSide,
           modelEdge: result.spreadEdgeHome,
           oddsByBook: { draftkings: STANDARD_JUICE, fanduel: STANDARD_JUICE },
         })
@@ -207,7 +207,7 @@ export async function generateRecommendationsForWeek(seasonYear: number, week: n
           description: `${label} — ${side} ${currentRow?.total ?? ''}`,
           side,
           modelScore: result.totScore,
-          modelProb: null,
+          modelProb: result.totProbSide,
           modelEdge: result.totalEdge,
           oddsByBook: { draftkings: STANDARD_JUICE, fanduel: STANDARD_JUICE },
         })
@@ -250,7 +250,7 @@ export async function generateRecommendationsForWeek(seasonYear: number, week: n
         description: `${merged.player} — ${merged.market.replace(/_/g, ' ')} ${propResult.side} ${propResult.line}`,
         side: propResult.side,
         modelScore: propResult.score,
-        modelProb: null,
+        modelProb: propResult.fairProb,
         modelEdge: null,
         oddsByBook: {
           ...(propResult.dkPrice !== null ? { draftkings: propResult.dkPrice } : {}),
@@ -276,6 +276,13 @@ export async function generateRecommendationsForWeek(seasonYear: number, week: n
 
   const rows = candidates.map((c) => {
     const alloc = allocByKey.get(c.recommendationKey)
+    // Real price for this pick, for parlay math later — whichever book got
+    // the stake, else whichever book actually has a price (moneyline for
+    // game_su, standard -110 juice for game_ats/game_total since no
+    // distinct spread/total juice feed exists, actual DK/FD price for
+    // player_prop).
+    const priceBook = (alloc?.sportsbook as Sportsbook | undefined) ?? (c.oddsByBook.draftkings !== undefined ? 'draftkings' : 'fanduel')
+    const odds = c.oddsByBook[priceBook] ?? c.oddsByBook.draftkings ?? c.oddsByBook.fanduel ?? null
     return {
       season_year: seasonYear,
       week_number: week,
@@ -287,6 +294,7 @@ export async function generateRecommendationsForWeek(seasonYear: number, week: n
       tier: c.tier,
       model_edge: c.modelEdge,
       model_prob: c.modelProb,
+      odds: odds ?? null,
       recommended_sportsbook: (alloc?.sportsbook as Sportsbook) ?? null,
       recommended_stake: alloc?.stake ?? null,
       promo_id: alloc?.promoId ?? null,
