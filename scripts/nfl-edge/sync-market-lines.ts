@@ -1,22 +1,23 @@
 // ============================================================================
-// NFL Edge Board — market line sync (DraftKings, via ESPN, real & free)
+// NFL Edge Board — market line sync (game lines: spread/total/moneyline)
 //
-// ESPN's scoreboard exposes a real DraftKings line for every game — verified
-// live against actual 2026 Week 1 odds (see src/lib/nfl-edge/espn.ts for the
-// details). No FanDuel feed exists this way; FanDuel stays manual-entry in
-// the dashboard (/admin/nfl-edge/week/[n]) unless a paid aggregator like The
-// Odds API gets wired in later.
+// Primary source: SportsGameOdds (real DraftKings + FanDuel, free — see
+// src/lib/nfl-edge/sportsgameodds.ts). If SGO returns nothing for the week
+// (key exhausted/outage/schema change), falls back to TheRundown (also
+// real, DraftKings + FanDuel, free for game lines — see therundown.ts).
+// Only one source's rows get inserted per run — never both, so a fallback
+// run can't double-count a week.
 //
 // market_lines is append-only by design (each run adds a new snapshot, so
 // the scoring engine can compare opening vs. current for line-movement/RLM
-// signals) — this script is safe to run as often as you like, e.g. a few
-// times through the week to catch line movement, and again close to kickoff.
+// signals) — safe to run as often as you like through the week.
 //
 // Usage:  npx tsx scripts/nfl-edge/sync-market-lines.ts <seasonYear> <week>
 // ============================================================================
 import 'dotenv/config'
 import { nflEdgeDb } from '../../src/lib/nfl-edge/supabase-admin'
-import { getWeekMarketLines } from '../../src/lib/nfl-edge/espn'
+import { getWeekMarketData } from '../../src/lib/nfl-edge/sportsgameodds'
+import { getDatesMarketLines } from '../../src/lib/nfl-edge/therundown'
 
 const seasonYear = Number(process.argv[2])
 const week = Number(process.argv[3])
@@ -25,12 +26,95 @@ if (!seasonYear || !week) {
   process.exit(1)
 }
 
+type Row = {
+  game_id: string
+  sportsbook: 'draftkings' | 'fanduel'
+  home_spread: number | null
+  home_moneyline: number | null
+  away_moneyline: number | null
+  total: number | null
+  source: string
+  captured_at: string
+}
+
+async function tryFetchSgo(
+  games: any[],
+  windowStart: string,
+  windowEnd: string
+): Promise<Row[] | null> {
+  try {
+    const { gameLines } = await getWeekMarketData(windowStart, windowEnd)
+    if (gameLines.length === 0) return null
+
+    const gameBySgoTeams = new Map<string, string>(
+      games.map((g: any) => [`${g.home_sgo}|${g.away_sgo}`, g.id])
+    )
+
+    const rows: Row[] = gameLines
+      .map((l) => {
+        const gameId = gameBySgoTeams.get(`${l.homeSgoTeamId}|${l.awaySgoTeamId}`)
+        if (!gameId) return null
+        return {
+          game_id: gameId,
+          sportsbook: l.sportsbook,
+          home_spread: l.homeSpread,
+          home_moneyline: l.homeMoneyline,
+          away_moneyline: l.awayMoneyline,
+          total: l.total,
+          source: 'sportsgameodds',
+          captured_at: new Date().toISOString(),
+        }
+      })
+      .filter((r): r is Row => r !== null)
+
+    return rows.length > 0 ? rows : null
+  } catch (err) {
+    console.warn('SportsGameOdds fetch failed, will try TheRundown fallback:', (err as Error).message)
+    return null
+  }
+}
+
+async function tryFetchRundown(games: any[], datesISO: string[]): Promise<Row[] | null> {
+  try {
+    const lines = await getDatesMarketLines(datesISO)
+    if (lines.length === 0) return null
+
+    const gameByNames = new Map<string, string>(
+      games.map((g: any) => [`${g.home_name}|${g.away_name}`, g.id])
+    )
+
+    const rows: Row[] = lines
+      .map((l) => {
+        const gameId = gameByNames.get(`${l.homeTeamName}|${l.awayTeamName}`)
+        if (!gameId) return null
+        return {
+          game_id: gameId,
+          sportsbook: l.sportsbook,
+          home_spread: l.homeSpread,
+          home_moneyline: l.homeMoneyline,
+          away_moneyline: l.awayMoneyline,
+          total: l.total,
+          source: 'therundown',
+          captured_at: new Date().toISOString(),
+        }
+      })
+      .filter((r): r is Row => r !== null)
+
+    return rows.length > 0 ? rows : null
+  } catch (err) {
+    console.warn('TheRundown fallback also failed:', (err as Error).message)
+    return null
+  }
+}
+
 async function main() {
   const db = nflEdgeDb()
 
   const { data: games, error } = await db
     .from('games')
-    .select('id, espn_event_id')
+    .select(
+      'id, game_time, home_team_id, away_team_id, home:teams!home_team_id(name, sgo_team_id), away:teams!away_team_id(name, sgo_team_id)'
+    )
     .eq('season_year', seasonYear)
     .eq('week_number', week)
   if (error) throw error
@@ -39,44 +123,44 @@ async function main() {
     return
   }
 
-  const gameByEspnId = new Map<string, string>(games.map((g: any) => [g.espn_event_id, g.id]))
+  const flat = games.map((g: any) => ({
+    id: g.id,
+    game_time: g.game_time,
+    home_sgo: g.home?.sgo_team_id,
+    away_sgo: g.away?.sgo_team_id,
+    home_name: g.home?.name,
+    away_name: g.away?.name,
+  }))
 
-  const lines = await getWeekMarketLines(seasonYear, week)
-  if (lines.length === 0) {
-    console.log('ESPN returned no odds for this week yet (lines usually post a few days out from kickoff).')
-    return
+  const times = flat.map((g: any) => new Date(g.game_time).getTime())
+  const windowStart = new Date(Math.min(...times) - 6 * 3600_000).toISOString()
+  const windowEnd = new Date(Math.max(...times) + 6 * 3600_000).toISOString()
+  const datesSeen: Record<string, true> = {}
+  for (const g of flat) {
+    datesSeen[new Date(g.game_time).toISOString().slice(0, 10)] = true
+  }
+  const datesISO = Object.keys(datesSeen)
+
+  let rows = await tryFetchSgo(flat, windowStart, windowEnd)
+  let usedSource = 'sportsgameodds'
+  if (!rows) {
+    rows = await tryFetchRundown(flat, datesISO)
+    usedSource = 'therundown'
   }
 
-  const rows = lines
-    .map((l) => {
-      const gameId = gameByEspnId.get(l.espnEventId)
-      if (!gameId) return null
-      return {
-        game_id: gameId,
-        sportsbook: 'draftkings' as const,
-        home_spread: l.homeSpread,
-        total: l.total,
-        home_moneyline: l.homeMoneyline,
-        away_moneyline: l.awayMoneyline,
-        source: 'espn',
-        captured_at: new Date().toISOString(),
-      }
-    })
-    .filter((r): r is NonNullable<typeof r> => r !== null)
-
-  if (rows.length === 0) {
-    console.log('No matching games for the odds ESPN returned.')
+  if (!rows || rows.length === 0) {
+    console.log(
+      'Neither SportsGameOdds nor TheRundown returned usable lines for this week (lines usually post a few days out from kickoff).'
+    )
     return
   }
 
   const { error: insErr } = await db.from('market_lines').insert(rows)
   if (insErr) throw insErr
 
-  console.log(`Inserted ${rows.length} DraftKings line snapshots for ${seasonYear} week ${week}.`)
-  for (const l of lines) {
-    if (gameByEspnId.has(l.espnEventId)) {
-      console.log(`  ${l.providerName}: espn#${l.espnEventId} spread=${l.homeSpread} total=${l.total}`)
-    }
+  console.log(`Inserted ${rows.length} line snapshots for ${seasonYear} week ${week} (source: ${usedSource}).`)
+  for (const r of rows) {
+    console.log(`  ${r.sportsbook}: game ${r.game_id} spread=${r.home_spread} total=${r.total} ml=${r.home_moneyline}/${r.away_moneyline}`)
   }
 }
 
