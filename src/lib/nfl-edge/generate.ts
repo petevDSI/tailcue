@@ -16,6 +16,7 @@
 import { nflEdgeDb } from './supabase-admin'
 import { scoreGame, tierOf, deriveTeamInjuryImpact, deriveRestCode, DEFAULT_SETTINGS } from './scoring'
 import { allocateBankroll, type AllocationCandidate } from './bankroll'
+import { mergeLatestProps, deriveTeammateInjuryBoosts, scoreProp } from './props-scoring'
 import type { Sportsbook } from './types'
 
 const STANDARD_JUICE = -110
@@ -75,6 +76,26 @@ export async function generateRecommendationsForWeek(seasonYear: number, week: n
     linesByGame.set(l.game_id, list)
   }
 
+  const gameIds = (games as any[]).map((g) => g.id)
+  const propRows: any[] = []
+  {
+    const PAGE_SIZE = 1000
+    let from = 0
+    while (true) {
+      const { data: page, error: propsErr } = await db
+        .from('player_props')
+        .select('game_id, sportsbook, player_name, team_id, market, line, over_price, under_price, captured_at')
+        .in('game_id', gameIds)
+        .order('captured_at', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1)
+      if (propsErr) throw propsErr
+      propRows.push(...(page ?? []))
+      if (!page || page.length < PAGE_SIZE) break
+      from += PAGE_SIZE
+    }
+  }
+  const mergedProps = mergeLatestProps(propRows)
+
   const candidates: (AllocationCandidate & {
     gameId: string
     tier: 'elite' | 'strong' | 'lean' | 'pass'
@@ -97,6 +118,7 @@ export async function generateRecommendationsForWeek(seasonYear: number, week: n
     const gameInjuries = injuriesByGame.get(game.id) ?? []
     const homeInj = deriveTeamInjuryImpact(gameInjuries, game.home_team_id)
     const awayInj = deriveTeamInjuryImpact(gameInjuries, game.away_team_id)
+    const teammateBoostsByTeam = deriveTeammateInjuryBoosts(gameInjuries)
 
     const homeRating = latestRating.get(game.home_team_id) ?? { off: 0, def: 0 }
     const awayRating = latestRating.get(game.away_team_id) ?? { off: 0, def: 0 }
@@ -190,6 +212,51 @@ export async function generateRecommendationsForWeek(seasonYear: number, week: n
           oddsByBook: { draftkings: STANDARD_JUICE, fanduel: STANDARD_JUICE },
         })
       }
+    }
+
+    // ---- player props for this game (see props-scoring.ts for the honest
+    // scope of what this can and can't claim to know) ----
+    const homeSpread = currentRow?.home_spread ?? null
+    const gameTotal = currentRow?.total ?? null
+    const homeImplied = homeSpread !== null && gameTotal !== null ? (gameTotal - homeSpread) / 2 : null
+    const awayImplied = homeSpread !== null && gameTotal !== null ? (gameTotal + homeSpread) / 2 : null
+
+    for (const merged of Array.from(mergedProps.values())) {
+      if (merged.gameId !== game.id) continue
+      const ownInjury = gameInjuries.find(
+        (i: any) => i.team_id === merged.teamId && i.player_name.toLowerCase() === merged.player.toLowerCase()
+      )
+      const teamImpliedTotal =
+        merged.teamId === game.home_team_id ? homeImplied : merged.teamId === game.away_team_id ? awayImplied : null
+
+      const propResult = scoreProp({
+        merged,
+        teamImpliedTotal,
+        leagueAvgTeamTotal: DEFAULT_SETTINGS.leagueAvg,
+        ownDesignation: ownInjury?.designation ?? null,
+        teammateBoosts: teammateBoostsByTeam.get(merged.teamId ?? '') ?? { receiving: false, rushing: false },
+      })
+      if (!propResult) continue
+
+      const propTier = tierOf(propResult.score)
+      if (propTier.n >= 4) continue
+
+      candidates.push({
+        recommendationKey: `${game.id}:prop:${merged.player}:${merged.market}`,
+        gameId: game.id,
+        tierN: propTier.n,
+        tier: propTier.tier,
+        betCategory: 'player_prop',
+        description: `${merged.player} — ${merged.market.replace(/_/g, ' ')} ${propResult.side} ${propResult.line}`,
+        side: propResult.side,
+        modelScore: propResult.score,
+        modelProb: null,
+        modelEdge: null,
+        oddsByBook: {
+          ...(propResult.dkPrice !== null ? { draftkings: propResult.dkPrice } : {}),
+          ...(propResult.fdPrice !== null ? { fanduel: propResult.fdPrice } : {}),
+        },
+      })
     }
   }
 

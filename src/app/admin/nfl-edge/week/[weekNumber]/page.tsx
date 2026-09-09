@@ -4,9 +4,13 @@
 // Shows the slate: game lines and player props (auto-synced via
 // sync-market-lines.ts / sync-player-props.ts — SportsGameOdds primary,
 // TheRundown fallback for game lines), a manual line-entry form as a
-// backstop/override, and a "Recompute recommendations" trigger.
+// backstop/override, and a "Recompute recommendations" trigger, which now
+// also scores player props (src/lib/nfl-edge/props-scoring.ts) alongside
+// the game-level SU/ATS/Total picks — same bet_recommendations table, same
+// tier styling, just a different bet_category.
 // ============================================================================
 import { nflEdgeDb } from '@/lib/nfl-edge/supabase-admin'
+import { mergeLatestProps, groupPropsByGame } from '@/lib/nfl-edge/props-scoring'
 import { saveMarketLine, recomputeWeek } from '../../actions'
 
 export const dynamic = 'force-dynamic'
@@ -90,24 +94,9 @@ export default async function WeekPage({
     linesByGame.set(l.game_id, list)
   }
 
-  // Dedupe to the latest snapshot per (game, player, market, book) — props
-  // is append-only, so re-syncs add rows rather than replace them.
-  const latestPropKey = new Set<string>()
-  type MergedProp = { player: string; market: string; dk?: any; fd?: any }
-  const propsByGame = new Map<string, Map<string, MergedProp>>()
-  for (const p of props ?? []) {
-    const dedupeKey = `${p.game_id}|${p.player_name}|${p.market}|${p.sportsbook}`
-    if (latestPropKey.has(dedupeKey)) continue // already have a newer snapshot for this exact line
-    latestPropKey.add(dedupeKey)
-
-    const gameMap = propsByGame.get(p.game_id) ?? new Map<string, MergedProp>()
-    const mergeKey = `${p.player_name}|${p.market}`
-    const merged: MergedProp = gameMap.get(mergeKey) ?? { player: p.player_name, market: p.market }
-    if (p.sportsbook === 'draftkings') merged.dk = p
-    if (p.sportsbook === 'fanduel') merged.fd = p
-    gameMap.set(mergeKey, merged)
-    propsByGame.set(p.game_id, gameMap)
-  }
+  // Same dedupe/merge props-scoring.ts uses for the model, so the page and
+  // the generator never drift on what "the current line" means.
+  const propsByGame = groupPropsByGame(mergeLatestProps(props ?? []))
 
   return (
     <div>
@@ -139,7 +128,7 @@ export default async function WeekPage({
           const gameLines = linesByGame.get(g.id) ?? []
           const dkLine = gameLines.find((l) => l.sportsbook === 'draftkings')
           const fdLine = gameLines.find((l) => l.sportsbook === 'fanduel')
-          const gameProps = Array.from(propsByGame.get(g.id)?.values() ?? []).sort((a, b) =>
+          const gameProps = (propsByGame.get(g.id) ?? []).slice().sort((a, b) =>
             a.player.localeCompare(b.player) || a.market.localeCompare(b.market)
           )
 
@@ -236,12 +225,12 @@ export default async function WeekPage({
                         <div className="flex items-center gap-3 font-mono text-muted-foreground">
                           {p.dk && (
                             <span>
-                              DK {p.dk.line ?? '—'} ({fmtOdds(p.dk.over_price)}/{fmtOdds(p.dk.under_price)})
+                              DK {p.dk.line ?? '—'} ({fmtOdds(p.dk.overPrice)}/{fmtOdds(p.dk.underPrice)})
                             </span>
                           )}
                           {p.fd && (
                             <span>
-                              FD {p.fd.line ?? '—'} ({fmtOdds(p.fd.over_price)}/{fmtOdds(p.fd.under_price)})
+                              FD {p.fd.line ?? '—'} ({fmtOdds(p.fd.overPrice)}/{fmtOdds(p.fd.underPrice)})
                             </span>
                           )}
                         </div>
