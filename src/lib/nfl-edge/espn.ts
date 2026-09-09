@@ -125,3 +125,55 @@ export async function getTeamCurrentInjuries(espnTeamId: string): Promise<RawTea
   }
   return Array.from(byAthlete.values())
 }
+
+// ---------------------------------------------------------------------------
+// Market lines (odds) — DraftKings, real, free
+//
+// ESPN's scoreboard payload carries a real betting line per game, attributed
+// to a named provider. Empirically (checked live against the actual 2026
+// Week 1 slate) that provider is DraftKings for every NFL game — no FanDuel
+// feed exists here, only DK. Confirmed the `spread` field is already signed
+// from the HOME team's perspective (negative = home favored), matching this
+// project's `market_lines.home_spread` column directly — no sign flip needed.
+// ---------------------------------------------------------------------------
+
+export interface EspnMarketLine {
+  espnEventId: string
+  providerName: string
+  homeSpread: number | null
+  total: number | null
+  homeMoneyline: number | null
+  awayMoneyline: number | null
+}
+
+export async function getWeekMarketLines(
+  seasonYear: number,
+  week: number,
+  seasonType: 1 | 2 | 3 = 2
+): Promise<EspnMarketLine[]> {
+  const url = `${SITE_BASE}/scoreboard?week=${week}&seasontype=${seasonType}&dates=${seasonYear}`
+  const data = await getJson<{ events: any[] }>(url)
+  const lines: EspnMarketLine[] = []
+
+  for (const ev of data.events ?? []) {
+    const comp = ev.competitions?.[0]
+    const oddsList = comp?.odds as any[] | undefined
+    if (!oddsList || oddsList.length === 0) continue
+    // Prefer DraftKings by name if multiple providers ever show up; fall back to whatever's first.
+    const odds = oddsList.find((o) => o.provider?.name === 'DraftKings') ?? oddsList[0]
+
+    const homeMl = odds.moneyline?.home?.close?.odds
+    const awayMl = odds.moneyline?.away?.close?.odds
+
+    lines.push({
+      espnEventId: ev.id,
+      providerName: odds.provider?.name ?? 'unknown',
+      homeSpread: typeof odds.spread === 'number' ? odds.spread : null,
+      total: typeof odds.overUnder === 'number' ? odds.overUnder : null,
+      homeMoneyline: homeMl !== undefined ? Number(homeMl) : null,
+      awayMoneyline: awayMl !== undefined ? Number(awayMl) : null,
+    })
+  }
+
+  return lines
+}
