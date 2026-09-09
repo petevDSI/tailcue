@@ -112,6 +112,7 @@ function extractPlayerProps(event: any): SgoPlayerPropRow[] {
 
   for (const odd of Object.values(odds) as any[]) {
     if (!odd?.playerID) continue // game-level lines have no playerID
+    if (odd.periodID !== 'game') continue // SGO also returns 1Q/2Q/1H/etc. props under the same statID — full-game only
     if (odd.sideID !== 'over') continue // process each over/under pair once, keyed off the "over" side
     const underOdd = odd.opposingOddID ? odds[odd.opposingOddID] : null
     const player = players[odd.playerID]
