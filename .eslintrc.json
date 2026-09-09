@@ -1,3 +1,11 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"]
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "overrides": [
+    {
+      "files": ["src/lib/nfl-edge/**/*.ts", "src/app/admin/nfl-edge/**/*.tsx", "src/app/api/admin/nfl-edge/**/*.ts", "scripts/nfl-edge/**/*.ts"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    }
+  ]
 }
