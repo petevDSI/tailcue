@@ -7,7 +7,8 @@
 //
 // Usage:  npx tsx scripts/nfl-edge/generate-recommendations.ts <seasonYear> <week>
 // ============================================================================
-import 'dotenv/config'
+import { config } from 'dotenv'
+config({ path: '.env.local' }) // scripts run outside Next.js, which is what normally loads .env.local
 import { generateRecommendationsForWeek } from '../../src/lib/nfl-edge/generate'
 
 const seasonYear = Number(process.argv[2])

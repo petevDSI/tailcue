@@ -11,7 +11,8 @@
 //
 // Usage:  npx tsx scripts/nfl-edge/sync-player-props.ts <seasonYear> <week>
 // ============================================================================
-import 'dotenv/config'
+import { config } from 'dotenv'
+config({ path: '.env.local' }) // scripts run outside Next.js, which is what normally loads .env.local
 import { nflEdgeDb } from '../../src/lib/nfl-edge/supabase-admin'
 import { getWeekMarketData } from '../../src/lib/nfl-edge/sportsgameodds'
 

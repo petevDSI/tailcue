@@ -8,7 +8,8 @@
 //
 // Usage:  npx tsx scripts/nfl-edge/sync-schedule.ts [seasonYear]
 // ============================================================================
-import 'dotenv/config'
+import { config } from 'dotenv'
+config({ path: '.env.local' }) // scripts run outside Next.js, which is what normally loads .env.local
 import { nflEdgeDb } from '../../src/lib/nfl-edge/supabase-admin'
 import { getScoreboardWeek } from '../../src/lib/nfl-edge/espn'
 
