@@ -54,11 +54,27 @@ export default async function WeekPage({
     .in('game_id', (games ?? []).map((g: any) => g.id))
     .order('captured_at', { ascending: false })
 
-  const { data: props } = await db
-    .from('player_props')
-    .select('*')
-    .in('game_id', (games ?? []).map((g: any) => g.id))
-    .order('captured_at', { ascending: false })
+  // Supabase/PostgREST caps a single query at 1,000 rows by default — a
+  // full week of props (16 games x ~130 rows) can exceed that, so page
+  // through with .range() until a partial page tells us we're done.
+  const props: any[] = []
+  {
+    const gameIds = (games ?? []).map((g: any) => g.id)
+    const PAGE_SIZE = 1000
+    let from = 0
+    while (true) {
+      const { data: page, error } = await db
+        .from('player_props')
+        .select('*')
+        .in('game_id', gameIds)
+        .order('captured_at', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1)
+      if (error) throw error
+      props.push(...(page ?? []))
+      if (!page || page.length < PAGE_SIZE) break
+      from += PAGE_SIZE
+    }
+  }
 
   const recsByGame = new Map<string, any[]>()
   for (const r of recs ?? []) {
