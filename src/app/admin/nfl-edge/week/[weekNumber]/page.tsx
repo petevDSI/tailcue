@@ -1,10 +1,10 @@
 // ============================================================================
 // NFL Edge Board — week detail
 //
-// Shows the slate, lets you enter each book's current line by hand (no
-// verified free/real odds API exists yet — see the project notes on why
-// SportsDataIO was ruled out), and recomputes the model + bankroll split
-// on demand.
+// Shows the slate: game lines and player props (auto-synced via
+// sync-market-lines.ts / sync-player-props.ts — SportsGameOdds primary,
+// TheRundown fallback for game lines), a manual line-entry form as a
+// backstop/override, and a "Recompute recommendations" trigger.
 // ============================================================================
 import { nflEdgeDb } from '@/lib/nfl-edge/supabase-admin'
 import { saveMarketLine, recomputeWeek } from '../../actions'
@@ -54,6 +54,12 @@ export default async function WeekPage({
     .in('game_id', (games ?? []).map((g: any) => g.id))
     .order('captured_at', { ascending: false })
 
+  const { data: props } = await db
+    .from('player_props')
+    .select('*')
+    .in('game_id', (games ?? []).map((g: any) => g.id))
+    .order('captured_at', { ascending: false })
+
   const recsByGame = new Map<string, any[]>()
   for (const r of recs ?? []) {
     const list = recsByGame.get(r.game_id) ?? []
@@ -66,6 +72,25 @@ export default async function WeekPage({
     const list = linesByGame.get(l.game_id) ?? []
     list.push(l)
     linesByGame.set(l.game_id, list)
+  }
+
+  // Dedupe to the latest snapshot per (game, player, market, book) — props
+  // is append-only, so re-syncs add rows rather than replace them.
+  const latestPropKey = new Set<string>()
+  type MergedProp = { player: string; market: string; dk?: any; fd?: any }
+  const propsByGame = new Map<string, Map<string, MergedProp>>()
+  for (const p of props ?? []) {
+    const dedupeKey = `${p.game_id}|${p.player_name}|${p.market}|${p.sportsbook}`
+    if (latestPropKey.has(dedupeKey)) continue // already have a newer snapshot for this exact line
+    latestPropKey.add(dedupeKey)
+
+    const gameMap = propsByGame.get(p.game_id) ?? new Map<string, MergedProp>()
+    const mergeKey = `${p.player_name}|${p.market}`
+    const merged: MergedProp = gameMap.get(mergeKey) ?? { player: p.player_name, market: p.market }
+    if (p.sportsbook === 'draftkings') merged.dk = p
+    if (p.sportsbook === 'fanduel') merged.fd = p
+    gameMap.set(mergeKey, merged)
+    propsByGame.set(p.game_id, gameMap)
   }
 
   return (
@@ -98,6 +123,9 @@ export default async function WeekPage({
           const gameLines = linesByGame.get(g.id) ?? []
           const dkLine = gameLines.find((l) => l.sportsbook === 'draftkings')
           const fdLine = gameLines.find((l) => l.sportsbook === 'fanduel')
+          const gameProps = Array.from(propsByGame.get(g.id)?.values() ?? []).sort((a, b) =>
+            a.player.localeCompare(b.player) || a.market.localeCompare(b.market)
+          )
 
           return (
             <div key={g.id} className="rounded-lg border border-border bg-card p-4">
@@ -174,6 +202,38 @@ export default async function WeekPage({
                   })}
                 </div>
               </details>
+
+              {gameProps.length > 0 && (
+                <details className="mt-3 text-sm">
+                  <summary className="cursor-pointer text-xs font-semibold uppercase text-muted-foreground">
+                    Player props ({gameProps.length})
+                  </summary>
+                  <div className="mt-2 max-h-96 space-y-1 overflow-y-auto pr-1">
+                    {gameProps.map((p) => (
+                      <div
+                        key={`${p.player}|${p.market}`}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 bg-background px-3 py-1.5 text-xs"
+                      >
+                        <div className="font-medium text-foreground">
+                          {p.player} <span className="text-muted-foreground">— {p.market.replace(/_/g, ' ')}</span>
+                        </div>
+                        <div className="flex items-center gap-3 font-mono text-muted-foreground">
+                          {p.dk && (
+                            <span>
+                              DK {p.dk.line ?? '—'} ({fmtOdds(p.dk.over_price)}/{fmtOdds(p.dk.under_price)})
+                            </span>
+                          )}
+                          {p.fd && (
+                            <span>
+                              FD {p.fd.line ?? '—'} ({fmtOdds(p.fd.over_price)}/{fmtOdds(p.fd.under_price)})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
             </div>
           )
         })}
