@@ -179,6 +179,22 @@ export function buildSuggestionsFromPool(pool: ScoredLeg[], opts: BuildParlayOpt
     }
   }
 
+  // Fallback: legSizes defaults to [2, 3], so a bucket that can only ever
+  // hold ONE qualifying leg — a standalone Thursday/Monday-nighter that's
+  // the lone game on its calendar day, or a game with just one qualifying
+  // pick in the "by game" view — produced zero combos above and used to
+  // vanish from the page entirely, with no indication the pick even
+  // existed. Surface it as a straight/single bet instead: this is exactly
+  // the "single... action" half of what the project brief asks for, not
+  // just parlays.
+  if (all.length === 0 && capped.length > 0) {
+    for (const combo of kCombinations(capped, 1)) {
+      const result = combineParlayLegs(combo)
+      if (result.evPct === null) continue
+      all.push({ legs: combo, result })
+    }
+  }
+
   all.sort((a, b) => {
     const evA = a.result.evPct ?? -Infinity
     const evB = b.result.evPct ?? -Infinity
@@ -226,13 +242,12 @@ export function buildParlayView(
     }
     const buckets: ParlayBucket[] = []
     for (const [gameId, gameLegs] of Array.from(byGame.entries())) {
-      if (gameLegs.length < 2) continue
       const suggestions = buildSuggestionsFromPool(gameLegs, opts)
       if (suggestions.length === 0) continue
       buckets.push({
         key: gameId,
         label: games.get(gameId)?.label ?? gameId,
-        correlated: true,
+        correlated: suggestions.some((s) => s.result.legs > 1),
         suggestions,
       })
     }

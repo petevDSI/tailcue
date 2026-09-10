@@ -165,7 +165,8 @@ export function ParlayBuilderClient({
                   </div>
                   <div className="flex flex-wrap items-center gap-4 border-t border-border/60 pt-2 font-mono text-xs">
                     <span className="text-muted-foreground">
-                      {s.legs.length}-leg · payout <span className="font-semibold text-foreground">{fmtBookOdds(s.result.bookDecimal)}</span>
+                      {s.legs.length === 1 ? 'Straight bet' : `${s.legs.length}-leg parlay`} · payout{' '}
+                      <span className="font-semibold text-foreground">{fmtBookOdds(s.result.bookDecimal)}</span>
                     </span>
                     <span className="text-muted-foreground">
                       model win prob <span className="font-semibold text-foreground">{fmtPct(s.result.combinedProb)}</span>
