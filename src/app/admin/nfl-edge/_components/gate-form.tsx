@@ -22,7 +22,7 @@ export function GateForm() {
     if (res.ok) {
       router.refresh()
     } else {
-      setError('Wrong key.')
+      setError('Wrong password.')
     }
   }
 
@@ -30,14 +30,14 @@ export function GateForm() {
     <div className="flex min-h-[70vh] items-center justify-center px-4">
       <form onSubmit={submit} className="w-full max-w-sm rounded-lg border border-border bg-card p-8 shadow-sm">
         <h1 className="mb-1 text-lg font-semibold text-foreground">NFL Edge Board</h1>
-        <p className="mb-5 text-sm text-muted-foreground">Enter the access key to continue.</p>
+        <p className="mb-5 text-sm text-muted-foreground">Enter your password to continue.</p>
         <input
           type="password"
           autoFocus
           value={key}
           onChange={(e) => setKey(e.target.value)}
           className="mb-3 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-          placeholder="Access key"
+          placeholder="Password"
         />
         {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
         <button
