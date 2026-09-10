@@ -13,7 +13,7 @@
 // pending bets are shown separately as "at risk," not folded into P&L.
 // ============================================================================
 import { nflEdgeDb } from '@/lib/nfl-edge/supabase-admin'
-import { profitIfWon } from '@/lib/nfl-edge/bet-tracker'
+import { profitIfWon, summarizeBets } from '@/lib/nfl-edge/bet-tracker'
 import { americanLabel } from '@/lib/nfl-edge/scoring'
 import { SettleButtons } from './_components/SettleButtons'
 
@@ -37,27 +37,18 @@ export default async function BetTrackerPage({ searchParams }: { searchParams: {
 
   const rows = (bets ?? []) as any[]
 
-  let totalStaked = 0
-  let atRisk = 0
-  let realizedPl = 0
-  let wonCount = 0
-  let lostCount = 0
-  let pushCount = 0
-
-  for (const b of rows) {
-    const stake = Number(b.stake)
-    totalStaked += stake
-    if (b.result === 'pending') atRisk += stake
-    else if (b.result === 'won') {
-      realizedPl += profitIfWon(stake, b.odds)
-      wonCount++
-    } else if (b.result === 'lost') {
-      realizedPl -= stake
-      lostCount++
-    } else if (b.result === 'push') {
-      pushCount++
-    }
-  }
+  const {
+    totalStaked,
+    atRisk,
+    realizedPl,
+    wonCount,
+    lostCount,
+    pushCount,
+    settledStaked,
+    winRatePct,
+    breakEvenWinRatePct,
+    roiPct,
+  } = summarizeBets(rows)
 
   const byWeek = new Map<number, any[]>()
   for (const b of rows) {
@@ -75,7 +66,7 @@ export default async function BetTrackerPage({ searchParams }: { searchParams: {
         </h1>
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-3 rounded-lg border border-border bg-card p-4 text-sm sm:grid-cols-4">
+      <div className="mb-2 grid grid-cols-2 gap-3 rounded-lg border border-border bg-card p-4 text-sm sm:grid-cols-3 lg:grid-cols-6">
         <div>
           <div className="text-xs uppercase text-muted-foreground">Realized P&amp;L</div>
           <div className={`font-mono text-lg font-semibold ${realizedPl >= 0 ? 'text-calm-foreground' : 'text-destructive'}`}>
@@ -83,8 +74,24 @@ export default async function BetTrackerPage({ searchParams }: { searchParams: {
           </div>
         </div>
         <div>
-          <div className="text-xs uppercase text-muted-foreground">At risk (pending)</div>
-          <div className="font-mono text-lg font-semibold text-foreground">${Math.round(atRisk)}</div>
+          <div className="text-xs uppercase text-muted-foreground">ROI</div>
+          <div
+            className={`font-mono text-lg font-semibold ${
+              roiPct === null ? 'text-muted-foreground' : roiPct >= 0 ? 'text-calm-foreground' : 'text-destructive'
+            }`}
+          >
+            {roiPct !== null ? `${roiPct >= 0 ? '+' : ''}${roiPct.toFixed(1)}%` : '—'}
+          </div>
+          <div className="text-[10px] text-muted-foreground">on ${Math.round(settledStaked)} settled</div>
+        </div>
+        <div>
+          <div className="text-xs uppercase text-muted-foreground">Win rate</div>
+          <div className="font-mono text-lg font-semibold text-foreground">
+            {winRatePct !== null ? `${winRatePct.toFixed(1)}%` : '—'}
+          </div>
+          {breakEvenWinRatePct !== null && (
+            <div className="text-[10px] text-muted-foreground">need {breakEvenWinRatePct.toFixed(1)}% on these odds</div>
+          )}
         </div>
         <div>
           <div className="text-xs uppercase text-muted-foreground">Record</div>
@@ -93,10 +100,26 @@ export default async function BetTrackerPage({ searchParams }: { searchParams: {
           </div>
         </div>
         <div>
+          <div className="text-xs uppercase text-muted-foreground">At risk (pending)</div>
+          <div className="font-mono text-lg font-semibold text-foreground">${Math.round(atRisk)}</div>
+        </div>
+        <div>
           <div className="text-xs uppercase text-muted-foreground">Total staked</div>
           <div className="font-mono text-lg font-semibold text-foreground">${Math.round(totalStaked)}</div>
         </div>
       </div>
+
+      {(wonCount + lostCount) > 0 && (
+        <p className="mb-6 max-w-3xl text-xs text-muted-foreground">
+          Win rate alone doesn&apos;t say much without the odds attached to it — a favorite at -200 needs to win 66.7% just to
+          break even, while a +150 underdog only needs 40%. &ldquo;Need X% on these odds&rdquo; above is the real break-even
+          bar for the exact prices these bets were actually placed at (stake-weighted), not a generic assumption, so it&apos;s
+          the number your win rate actually has to clear. ROI (net profit ÷ stake actually settled) is the metric that
+          reflects whether picks are beating the market independent of the odds mix — a sustained 3&ndash;5% ROI is
+          considered strong long-run performance in sports betting; treat any of these numbers with real caution until
+          there&apos;s a meaningful sample of settled bets behind them.
+        </p>
+      )}
 
       {rows.length === 0 && (
         <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">

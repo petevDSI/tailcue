@@ -319,7 +319,20 @@ export async function generateRecommendationsForWeek(seasonYear: number, week: n
   const allocations = allocateBankroll({ bankrolls, candidates, activePromos: promos ?? [] })
   const allocByKey = new Map(allocations.map((a) => [a.recommendationKey, a]))
 
-  await db.from('bet_recommendations').delete().eq('season_year', seasonYear).eq('week_number', week)
+  // If this fails silently, the insert below still runs and every pick for
+  // the week ends up duplicated (old + new) instead of cleanly replaced --
+  // this exact bug happened once already (2026-09-10) because
+  // bets_placed.recommendation_id's FK used to block this delete outright
+  // the moment any pick got checked off as placed. That FK is now
+  // ON DELETE SET NULL specifically so this can't recur, but the check
+  // stays here as a second layer -- never let a delete this consequential
+  // fail without surfacing it.
+  const { error: delErr } = await db
+    .from('bet_recommendations')
+    .delete()
+    .eq('season_year', seasonYear)
+    .eq('week_number', week)
+  if (delErr) throw delErr
 
   const rows = candidates.map((c) => {
     const alloc = allocByKey.get(c.recommendationKey)

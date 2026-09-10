@@ -40,14 +40,22 @@ export type SyncResult =
   | { status: 'no_lines' }
   | { status: 'inserted'; count: number; source: string; rows: Row[] }
 
+// Distinguishes two very different "nothing came back" cases that used to
+// be conflated (2026-09-10 bug): `error: null` means the fetch itself
+// worked but the provider genuinely has nothing to offer yet (bye week,
+// lines not posted); `error` set means the fetch itself broke (missing API
+// key, auth failure, provider outage) -- a real problem that should not be
+// reported the same way as "nothing posted yet."
+type FetchOutcome = { rows: Row[] | null; error: Error | null }
+
 async function tryFetchSgo(
   games: any[],
   windowStart: string,
   windowEnd: string
-): Promise<Row[] | null> {
+): Promise<FetchOutcome> {
   try {
     const { gameLines } = await getWeekMarketData(windowStart, windowEnd)
-    if (gameLines.length === 0) return null
+    if (gameLines.length === 0) return { rows: null, error: null }
 
     const gameBySgoTeams = new Map<string, string>(
       games.map((g: any) => [`${g.home_sgo}|${g.away_sgo}`, g.id])
@@ -70,17 +78,17 @@ async function tryFetchSgo(
       })
       .filter((r): r is Row => r !== null)
 
-    return rows.length > 0 ? rows : null
+    return { rows: rows.length > 0 ? rows : null, error: null }
   } catch (err) {
     console.warn('SportsGameOdds fetch failed, will try TheRundown fallback:', (err as Error).message)
-    return null
+    return { rows: null, error: err as Error }
   }
 }
 
-async function tryFetchRundown(games: any[], datesISO: string[]): Promise<Row[] | null> {
+async function tryFetchRundown(games: any[], datesISO: string[]): Promise<FetchOutcome> {
   try {
     const lines = await getDatesMarketLines(datesISO)
-    if (lines.length === 0) return null
+    if (lines.length === 0) return { rows: null, error: null }
 
     const gameByNames = new Map<string, string>(
       games.map((g: any) => [`${g.home_name}|${g.away_name}`, g.id])
@@ -103,10 +111,10 @@ async function tryFetchRundown(games: any[], datesISO: string[]): Promise<Row[] 
       })
       .filter((r): r is Row => r !== null)
 
-    return rows.length > 0 ? rows : null
+    return { rows: rows.length > 0 ? rows : null, error: null }
   } catch (err) {
     console.warn('TheRundown fallback also failed:', (err as Error).message)
-    return null
+    return { rows: null, error: err as Error }
   }
 }
 
@@ -148,14 +156,30 @@ export async function syncMarketLinesForWeek(seasonYear: number, week: number): 
   }
   const datesISO = Object.keys(datesSeen)
 
-  let rows = await tryFetchSgo(flat, windowStart, windowEnd)
+  const sgo = await tryFetchSgo(flat, windowStart, windowEnd)
+  let rows = sgo.rows
   let usedSource = 'sportsgameodds'
+  let rundownError: Error | null = null
   if (!rows) {
-    rows = await tryFetchRundown(flat, datesISO)
+    const rundown = await tryFetchRundown(flat, datesISO)
+    rows = rundown.rows
     usedSource = 'therundown'
+    rundownError = rundown.error
   }
 
   if (!rows || rows.length === 0) {
+    // "no_lines" is a legitimate, silent-by-design outcome ONLY when both
+    // providers were actually reachable and genuinely have nothing to
+    // offer yet. If either one failed outright (missing API key, auth
+    // error, provider outage), that's a real problem -- surface it as a
+    // thrown error instead of quietly reporting the same "no_lines" status
+    // a bye week would produce. This exact conflation let a missing
+    // SGO_API_KEY / THERUNDOWN_API_KEY in the production environment go
+    // unnoticed for over a day (2026-09-10) while the cron kept reporting
+    // a clean 200.
+    if (sgo.error || rundownError) {
+      throw sgo.error ?? rundownError
+    }
     return { status: 'no_lines' }
   }
 
