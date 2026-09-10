@@ -361,6 +361,15 @@ export default async function WeekPage({
           const gameProps = (propsByGame.get(g.id) ?? []).slice().sort((a, b) =>
             a.player.localeCompare(b.player) || a.market.localeCompare(b.market)
           )
+          // Player prop recommendations don't carry their own team_id column
+          // (bet_recommendations has no such field), but every prop's
+          // description leads with the exact player name used in the
+          // synced player_props rows for this same game — so look the
+          // team up there instead of adding a migration for it.
+          const propTeamByPlayer = new Map<string, string>(
+            gameProps.filter((p) => p.teamId).map((p) => [p.player.toLowerCase(), p.teamId as string])
+          )
+          const propRecTeam = (r: any): string | null => propTeamByPlayer.get(r.description.split(' — ')[0].toLowerCase()) ?? null
           const homeInjuries = (injuriesByGame.get(g.id) ?? [])
             .filter((inj) => inj.team_id === g.home_team?.id)
             .sort((a, b) => a.player_name.localeCompare(b.player_name))
@@ -385,8 +394,14 @@ export default async function WeekPage({
             { win: 0, loss: 0, push: 0 } as Record<PickGrade, number>
           )
 
+          const isFinal = g.status === 'final'
           return (
-            <div key={g.id} className="rounded-lg border border-border bg-card p-4">
+            <div
+              key={g.id}
+              className={`rounded-lg border p-4 ${
+                isFinal ? 'border-border/40 bg-muted/30 opacity-70' : 'border-border bg-card'
+              }`}
+            >
               <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
                 <div className="text-base font-semibold text-foreground">
                   {g.away_team?.name} <span className="text-muted-foreground">@</span> {g.home_team?.name}
@@ -541,6 +556,7 @@ export default async function WeekPage({
                       <div className="space-y-1.5">
                         {propPickRecs.map((r) => {
                           const isTopBet = topPropRecIds.has(r.id)
+                          const team = propRecTeam(r)
                           return (
                             <div
                               key={r.id}
@@ -553,6 +569,11 @@ export default async function WeekPage({
                                 {isTopBet && (
                                   <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${TOP_BET_BADGE}`}>
                                     ★ Top bet
+                                  </span>
+                                )}
+                                {team && (
+                                  <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
+                                    {team}
                                   </span>
                                 )}
                                 <span className="font-medium text-foreground">{r.description}</span>
@@ -678,6 +699,7 @@ export default async function WeekPage({
                         className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 bg-background px-3 py-1.5 text-xs"
                       >
                         <div className="font-medium text-foreground">
+                          {p.teamId && <span className="text-muted-foreground">{p.teamId} </span>}
                           {p.player} <span className="text-muted-foreground">— {p.market.replace(/_/g, ' ')}</span>
                         </div>
                         <div className="flex items-center gap-3 font-mono text-muted-foreground">
