@@ -21,7 +21,13 @@
 // re-scores everything (src/lib/nfl-edge/generate.ts) — game-level SU/ATS/
 // Total picks and player props (props-scoring.ts) into the same
 // bet_recommendations table. The Parlay Builder (src/lib/nfl-edge/
-// parlay.ts) works off those same rows.
+// parlay.ts) works off those same rows. "Top Bets →" links to the
+// combined straight/prop/parlay shortlist with the "I placed this"
+// checkboxes (week/[n]/top-bets). The prop accordion's summary counts how
+// many of the full synced board are Elite/Strong, independent of the tier
+// filter, so Pete can tell at a glance whether it's worth opening.
+// Recommended stakes are shown rounded up to whole dollars throughout
+// (see bankroll.ts) — no cents.
 // ============================================================================
 import Link from 'next/link'
 import { nflEdgeDb } from '@/lib/nfl-edge/supabase-admin'
@@ -237,8 +243,14 @@ export default async function WeekPage({
         </h1>
         <div className="flex items-center gap-2">
           <Link
-            href={`/admin/nfl-edge/week/${week}/parlays?season=${seasonYear}`}
+            href={`/admin/nfl-edge/week/${week}/top-bets?season=${seasonYear}`}
             className="rounded-md border border-primary/40 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/20"
+          >
+            Top Bets →
+          </Link>
+          <Link
+            href={`/admin/nfl-edge/week/${week}/parlays?season=${seasonYear}`}
+            className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground"
           >
             Parlay Builder →
           </Link>
@@ -302,6 +314,12 @@ export default async function WeekPage({
           const gameLineRecs = allGameRecs.filter((r) => r.bet_category !== 'player_prop' && matchesTier(r)).sort((a, b) => b.model_score - a.model_score)
           const propPickRecs = allGameRecs.filter((r) => r.bet_category === 'player_prop' && matchesTier(r)).sort((a, b) => b.model_score - a.model_score)
           const anyPropRecs = allGameRecs.some((r) => r.bet_category === 'player_prop')
+          // Unfiltered by the tier selector above — this is "how many of the
+          // full synced prop board are actually worth a look," not a count
+          // that should shrink when Pete narrows the page to one tier.
+          const allGameProps = allGameRecs.filter((r) => r.bet_category === 'player_prop')
+          const eliteProps = allGameProps.filter((r) => r.tier === 'elite').length
+          const strongProps = allGameProps.filter((r) => r.tier === 'strong').length
 
           const gameLines = linesByGame.get(g.id) ?? []
           const dkLine = gameLines.find((l) => l.sportsbook === 'draftkings')
@@ -433,7 +451,7 @@ export default async function WeekPage({
                           <span>score {r.model_score.toFixed(0)}</span>
                           {r.recommended_sportsbook && r.recommended_stake ? (
                             <span className="font-semibold text-foreground">
-                              {r.recommended_sportsbook === 'draftkings' ? 'DK' : 'FD'} ${Number(r.recommended_stake).toFixed(2)}
+                              {r.recommended_sportsbook === 'draftkings' ? 'DK' : 'FD'} ${Math.round(Number(r.recommended_stake))}
                             </span>
                           ) : (
                             <span>no stake</span>
@@ -480,7 +498,7 @@ export default async function WeekPage({
                               <span>score {r.model_score.toFixed(0)}</span>
                               {r.recommended_sportsbook && r.recommended_stake ? (
                                 <span className="font-semibold text-foreground">
-                                  {r.recommended_sportsbook === 'draftkings' ? 'DK' : 'FD'} ${Number(r.recommended_stake).toFixed(2)}
+                                  {r.recommended_sportsbook === 'draftkings' ? 'DK' : 'FD'} ${Math.round(Number(r.recommended_stake))}
                                 </span>
                               ) : (
                                 <span>no stake</span>
@@ -577,6 +595,9 @@ export default async function WeekPage({
                 <details className="mt-3 text-sm">
                   <summary className="cursor-pointer text-xs font-semibold uppercase text-muted-foreground">
                     All synced prop lines ({gameProps.length})
+                    {eliteProps + strongProps > 0
+                      ? ` — ${eliteProps} Elite, ${strongProps} Strong`
+                      : ' — none Elite/Strong'}
                   </summary>
                   <div className="mt-2 max-h-96 space-y-1 overflow-y-auto pr-1">
                     {gameProps.map((p) => (

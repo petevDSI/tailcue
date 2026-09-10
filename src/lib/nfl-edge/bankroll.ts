@@ -11,6 +11,13 @@
 // or portfolio optimizer. Real money is involved; a staking plan Pete can
 // read and second-guess at a glance is more valuable here than a "smarter"
 // black box.
+//
+// Stakes are rounded UP to the nearest whole dollar (Math.ceil), not to the
+// cent — Pete doesn't want to be betting $14.37, and sportsbooks don't
+// require it either. Rounding up (rather than to nearest) means a book's
+// total can overshoot its 100%-of-bankroll cap by a few dollars in the
+// normalize step below; that's an acceptable tradeoff for whole-dollar
+// bets, not a bug.
 // ============================================================================
 
 import { unitsFor } from './scoring'
@@ -108,7 +115,7 @@ export function allocateBankroll(input: AllocatorInput): Allocation[] {
       chosenBook = bankrolls.fanduel > bankrolls.draftkings ? 'fanduel' : 'draftkings'
     }
 
-    const stake = Math.round(bankrolls[chosenBook] * unitPct * 100) / 100
+    const stake = Math.ceil(bankrolls[chosenBook] * unitPct)
     drafts.push({ candidate, book: chosenBook, stake, promo: chosenPromo })
   }
 
@@ -121,7 +128,7 @@ export function allocateBankroll(input: AllocatorInput): Allocation[] {
     const total = mine.reduce((sum, d) => sum + d.stake, 0)
     if (total > bankrolls[book] && total > 0) {
       const scale = bankrolls[book] / total
-      for (const d of mine) d.stake = Math.round(d.stake * scale * 100) / 100
+      for (const d of mine) d.stake = Math.ceil(d.stake * scale)
     }
   }
 

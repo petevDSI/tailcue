@@ -20,6 +20,7 @@ import { revalidatePath } from 'next/cache'
 import { nflEdgeDb } from '@/lib/nfl-edge/supabase-admin'
 import { generateRecommendationsForWeek } from '@/lib/nfl-edge/generate'
 import { syncScheduleWeek } from '@/lib/nfl-edge/schedule-sync'
+import { profitIfWon } from '@/lib/nfl-edge/bet-tracker'
 
 export async function updateBankroll(formData: FormData) {
   const dk = Number(formData.get('draftkings'))
@@ -134,4 +135,110 @@ export async function deletePromo(id: number) {
   const { error } = await db.from('promos').delete().eq('id', id)
   if (error) throw error
   revalidatePath('/admin/nfl-edge/promos')
+}
+
+// ── Top Bets / Bet Tracker ──────────────────────────────────────────────
+// Checking a bet as "placed" writes a row into nfl_edge.bets_placed using
+// the price/stake this system already recommended — see top-bets/page.tsx's
+// header comment for why there's no way to edit the stake here. Grading
+// (settleBet) is always manual — see bet-tracker.ts's header comment.
+
+export async function toggleTrackSingleBet(
+  recommendationId: number,
+  seasonYear: number,
+  week: number,
+  tracked: boolean
+) {
+  const db = nflEdgeDb()
+  if (!tracked) {
+    const { error } = await db
+      .from('bets_placed')
+      .delete()
+      .eq('bet_type', 'single')
+      .eq('recommendation_id', recommendationId)
+      .eq('result', 'pending')
+    if (error) throw error
+    revalidatePath(`/admin/nfl-edge/week/${week}/top-bets`)
+    revalidatePath('/admin/nfl-edge/bet-tracker')
+    return
+  }
+  const { data: rec, error: recErr } = await db
+    .from('bet_recommendations')
+    .select('description, odds, recommended_sportsbook, recommended_stake')
+    .eq('id', recommendationId)
+    .maybeSingle()
+  if (recErr) throw recErr
+  if (!rec || rec.odds === null || rec.recommended_sportsbook === null || rec.recommended_stake === null) return
+  const stake = Number(rec.recommended_stake)
+  const odds = Number(rec.odds)
+  const { error } = await db.from('bets_placed').insert({
+    recommendation_id: recommendationId,
+    leg_recommendation_ids: [recommendationId],
+    bet_type: 'single',
+    season_year: seasonYear,
+    week_number: week,
+    sportsbook: rec.recommended_sportsbook,
+    description: rec.description,
+    stake,
+    odds,
+    potential_payout: Math.round((stake + profitIfWon(stake, odds)) * 100) / 100,
+    result: 'pending',
+    placed_at: new Date().toISOString(),
+  })
+  if (error) throw error
+  revalidatePath(`/admin/nfl-edge/week/${week}/top-bets`)
+  revalidatePath('/admin/nfl-edge/bet-tracker')
+}
+
+export async function toggleTrackParlay(
+  legIds: number[],
+  description: string,
+  sportsbook: 'draftkings' | 'fanduel',
+  stake: number,
+  odds: number,
+  seasonYear: number,
+  week: number,
+  tracked: boolean
+) {
+  const db = nflEdgeDb()
+  const sortedLegIds = [...legIds].sort((a, b) => a - b)
+  if (!tracked) {
+    const { error } = await db
+      .from('bets_placed')
+      .delete()
+      .eq('bet_type', 'parlay')
+      .eq('leg_recommendation_ids', sortedLegIds)
+      .eq('result', 'pending')
+    if (error) throw error
+    revalidatePath(`/admin/nfl-edge/week/${week}/top-bets`)
+    revalidatePath('/admin/nfl-edge/bet-tracker')
+    return
+  }
+  const { error } = await db.from('bets_placed').insert({
+    recommendation_id: null,
+    leg_recommendation_ids: sortedLegIds,
+    bet_type: 'parlay',
+    season_year: seasonYear,
+    week_number: week,
+    sportsbook,
+    description,
+    stake,
+    odds,
+    potential_payout: Math.round((stake + profitIfWon(stake, odds)) * 100) / 100,
+    result: 'pending',
+    placed_at: new Date().toISOString(),
+  })
+  if (error) throw error
+  revalidatePath(`/admin/nfl-edge/week/${week}/top-bets`)
+  revalidatePath('/admin/nfl-edge/bet-tracker')
+}
+
+export async function settleBet(betId: number, result: 'won' | 'lost' | 'push' | 'pending') {
+  const db = nflEdgeDb()
+  const { error } = await db
+    .from('bets_placed')
+    .update({ result, settled_at: result === 'pending' ? null : new Date().toISOString() })
+    .eq('id', betId)
+  if (error) throw error
+  revalidatePath('/admin/nfl-edge/bet-tracker')
 }

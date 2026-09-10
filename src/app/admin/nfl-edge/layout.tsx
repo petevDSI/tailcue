@@ -46,6 +46,9 @@ export default function NflEdgeLayout({ children }: { children: React.ReactNode 
             <Link href="/admin/nfl-edge/promos" className="hover:text-foreground">
               Promos
             </Link>
+            <Link href="/admin/nfl-edge/bet-tracker" className="hover:text-foreground">
+              Bet Tracker
+            </Link>
           </nav>
         </div>
       </div>
