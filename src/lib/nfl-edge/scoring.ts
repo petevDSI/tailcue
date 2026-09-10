@@ -190,6 +190,8 @@ export interface ScoreGameInput {
   homeSandwichRisk: boolean
   awaySandwichRisk: boolean
   windMph: number
+  /** Game-time temperature in °F, when a weather snapshot exists (null otherwise — treated as no temperature effect, not a guessed baseline). */
+  tempF: number | null
   isDome: boolean
   /** Consensus current home spread, e.g. -3 means home favored by 3. */
   marketSpreadHome: number | null
@@ -223,7 +225,8 @@ export interface ScoreGameResult {
   totSideIsOver: boolean | null
   /** P(the picked total side hits), same model as atsProbSide applied to the total. Approximation: reuses margin SIGMA for total variance (no separately-fitted total-variance constant exists yet). Null when no market total yet. */
   totProbSide: number | null
-  windPenalty: number
+  /** Combined wind + cold-temperature total suppression, in points — see the calculation below for sourcing/limits. */
+  weatherPenalty: number
 }
 
 /**
@@ -236,12 +239,32 @@ export function scoreGame(g: ScoreGameInput, settings: ScoreSettings = DEFAULT_S
   const homeRestAdj = REST_IMPACT[g.homeRest]
   const awayRestAdj = REST_IMPACT[g.awayRest]
 
+  // Wind + cold-temperature total suppression. The 15-19/20+ mph wind tiers
+  // are unchanged from this file's original, citation-backed values (see
+  // the methodology doc's Covers.com / Sharp Football Analysis sources); a
+  // moderate 10-14 mph tier and a cold-temperature effect were added
+  // 2026-09-10 after reviewing a third-party handicapping reference whose
+  // own wind table went as high as -6.0 pts at 20+ mph with NO cited
+  // source — that number looks inflated versus the real published research
+  // already cited here, so this deliberately stays conservative and close
+  // to the existing, sourced values rather than adopting an unsourced
+  // multiplier. No adjustment for heat (the same reference's "fatigue"
+  // claim above 85°F isn't documented well enough to price in).
   let windPenalty = 0
-  if (!g.isDome && g.windMph >= 20) windPenalty = 1.5
-  else if (!g.isDome && g.windMph >= 15) windPenalty = 0.8
+  if (!g.isDome) {
+    if (g.windMph >= 20) windPenalty = 1.5
+    else if (g.windMph >= 15) windPenalty = 0.8
+    else if (g.windMph >= 10) windPenalty = 0.3
+  }
+  let tempPenalty = 0
+  if (!g.isDome && g.tempF !== null) {
+    if (g.tempF < 20) tempPenalty = 1.0
+    else if (g.tempF < 32) tempPenalty = 0.5
+  }
+  const weatherPenalty = windPenalty + tempPenalty
 
-  const projHome = LA + g.homeOff - g.awayDef + HFA / 2 + homeRestAdj + g.homeInjuryPts - windPenalty / 2
-  const projAway = LA + g.awayOff - g.homeDef - HFA / 2 + awayRestAdj + g.awayInjuryPts - windPenalty / 2
+  const projHome = LA + g.homeOff - g.awayDef + HFA / 2 + homeRestAdj + g.homeInjuryPts - weatherPenalty / 2
+  const projAway = LA + g.awayOff - g.homeDef - HFA / 2 + awayRestAdj + g.awayInjuryPts - weatherPenalty / 2
 
   const projMarginHome = projHome - projAway
   const projTotal = projHome + projAway
@@ -298,11 +321,38 @@ export function scoreGame(g: ScoreGameInput, settings: ScoreSettings = DEFAULT_S
     // treatment as the divisional and QB-questionable penalties above, not
     // baked into the projected margin itself.
     const sandwichPenaltyAts = (atsSideIsHome ? g.homeSandwichRisk : g.awaySandwichRisk) ? 3 : 0
+
+    // NFL final margins cluster heavily around a handful of numbers (3, 7, 6,
+    // 10, 4, 14, 2, 1 — Covers.com's key-numbers reference, already cited in
+    // the project's methodology doc). A team GETTING points benefits from a
+    // line that sits just ABOVE a key number (+3.5 beats +3 beats +2.5, since
+    // far more games are decided by exactly 3 points than by 2 or 4); a team
+    // LAYING points benefits from a line just BELOW a key number (-2.5 beats
+    // -3 beats -3.5, same reason in reverse). This is standard "buying the
+    // key number" logic — a small, well-documented bump to how much a given
+    // market number is worth, independent of the model's own projected edge.
+    const KEY_NUMBERS = [3, 7, 6, 10, 4, 14, 2, 1]
+    let keyNumberBonus = 0
+    if (g.marketSpreadHome !== null) {
+      const sideSpread = atsSideIsHome ? g.marketSpreadHome : -g.marketSpreadHome // + = getting points, - = laying points
+      for (const k of KEY_NUMBERS) {
+        if (sideSpread > 0 && sideSpread >= k + 0.25 && sideSpread <= k + 0.75) {
+          keyNumberBonus = 2
+          break
+        }
+        if (sideSpread < 0 && -sideSpread >= k - 0.75 && -sideSpread <= k - 0.25) {
+          keyNumberBonus = 2
+          break
+        }
+      }
+    }
+
     atsScore = clamp(
       50 +
         Math.min(Math.abs(spreadEdgeHome), 6) * 6 +
         lineMoveBonus +
-        rlmBonus -
+        rlmBonus +
+        keyNumberBonus -
         qbQuestionablePenalty -
         divisionalPenaltyAts -
         sandwichPenaltyAts,
@@ -328,7 +378,7 @@ export function scoreGame(g: ScoreGameInput, settings: ScoreSettings = DEFAULT_S
   if (totalEdge !== null) {
     totSideIsOver = totalEdge >= 0
     let windBonus = 0
-    if (windPenalty > 0) windBonus = !totSideIsOver ? 6 : -6
+    if (weatherPenalty > 0) windBonus = !totSideIsOver ? 6 : -6
     const divTotalAdj = g.isDivisional ? (!totSideIsOver ? 4 : -4) : 0
     totScore = clamp(50 + Math.min(Math.abs(totalEdge), 8) * 4.5 + windBonus + divTotalAdj, 0, 100)
   }
@@ -374,7 +424,7 @@ export function scoreGame(g: ScoreGameInput, settings: ScoreSettings = DEFAULT_S
     totScore,
     totSideIsOver,
     totProbSide,
-    windPenalty,
+    weatherPenalty,
   }
 }
 

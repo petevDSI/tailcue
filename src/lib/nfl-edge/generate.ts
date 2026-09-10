@@ -60,7 +60,7 @@ export async function generateRecommendationsForWeek(seasonYear: number, week: n
     latestRating.set(r.team_id, { off: r.off_rating, def: r.def_rating })
   }
 
-  const { data: weather } = await db.from('weather_snapshots').select('game_id, wind_mph, is_dome_or_indoor')
+  const { data: weather } = await db.from('weather_snapshots').select('game_id, wind_mph, temp_f, is_dome_or_indoor')
   const weatherByGame = new Map<string, any>((weather ?? []).map((w: any) => [w.game_id, w]))
 
   // Sandwich/lookahead detection needs each team's FULL-SEASON schedule
@@ -185,6 +185,7 @@ export async function generateRecommendationsForWeek(seasonYear: number, week: n
         homeSandwichRisk: homeSandwich.lookaheadRisk || homeSandwich.hangoverRisk,
         awaySandwichRisk: awaySandwich.lookaheadRisk || awaySandwich.hangoverRisk,
         windMph: w?.wind_mph ?? 0,
+        tempF: w?.temp_f ?? null,
         isDome: w?.is_dome_or_indoor ?? game.home_team?.is_dome ?? false,
         marketSpreadHome: currentRow?.home_spread ?? null,
         openSpreadHome: openRow?.home_spread ?? null,
