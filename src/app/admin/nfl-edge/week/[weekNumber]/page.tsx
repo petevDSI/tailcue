@@ -74,6 +74,63 @@ function fmtKickoff(iso: string) {
   })
 }
 
+type PickGrade = 'win' | 'loss' | 'push'
+
+const GRADE_STYLE: Record<PickGrade, string> = {
+  win: 'bg-primary/15 text-primary border-primary/30',
+  loss: 'bg-destructive/15 text-destructive border-destructive/30',
+  push: 'bg-muted text-muted-foreground border-border',
+}
+
+/**
+ * Grades one already-issued recommendation against the final score. Reads
+ * the exact number that was recommended straight out of `description`
+ * (e.g. "... — Chiefs -3.5", "... — Over 47.5") rather than re-deriving it
+ * from market_lines, since the line can move after a pick goes out — this
+ * grades the analysis we actually provided, not whatever the market shows
+ * now. Player props aren't graded here: no box-score/stat feed is synced
+ * to check them against.
+ */
+function gradeRecommendation(
+  r: { bet_category: string; description: string; side: string },
+  homeName: string | undefined,
+  awayName: string | undefined,
+  homeScore: number,
+  awayScore: number
+): PickGrade | null {
+  if (r.bet_category === 'game_su') {
+    const pickedHome = r.side === homeName
+    const pickedAway = r.side === awayName
+    if (!pickedHome && !pickedAway) return null
+    if (homeScore === awayScore) return 'push'
+    const homeWon = homeScore > awayScore
+    return (pickedHome && homeWon) || (pickedAway && !homeWon) ? 'win' : 'loss'
+  }
+  if (r.bet_category === 'game_ats') {
+    const m = r.description.match(/([+-]?\d+(?:\.\d+)?)\s*$/)
+    if (!m) return null
+    const spreadForSide = parseFloat(m[1])
+    const pickedHome = r.side === homeName
+    const pickedAway = r.side === awayName
+    if (!pickedHome && !pickedAway) return null
+    const diff = (pickedHome ? homeScore - awayScore : awayScore - homeScore) + spreadForSide
+    if (diff > 0) return 'win'
+    if (diff < 0) return 'loss'
+    return 'push'
+  }
+  if (r.bet_category === 'game_total') {
+    const m = r.description.match(/(\d+(?:\.\d+)?)\s*$/)
+    if (!m) return null
+    const totalLine = parseFloat(m[1])
+    const sum = homeScore + awayScore
+    const isOver = r.side === 'Over'
+    if (sum === totalLine) return 'push'
+    const overHit = sum > totalLine
+    return (isOver && overHit) || (!isOver && !overHit) ? 'win' : 'loss'
+  }
+  return null
+}
+
 export default async function WeekPage({
   params,
   searchParams,
@@ -252,9 +309,29 @@ export default async function WeekPage({
           const gameProps = (propsByGame.get(g.id) ?? []).slice().sort((a, b) =>
             a.player.localeCompare(b.player) || a.market.localeCompare(b.market)
           )
-          const gameInjuries = (injuriesByGame.get(g.id) ?? []).sort((a, b) => a.player_name.localeCompare(b.player_name))
+          const homeInjuries = (injuriesByGame.get(g.id) ?? [])
+            .filter((inj) => inj.team_id === g.home_team?.id)
+            .sort((a, b) => a.player_name.localeCompare(b.player_name))
+          const awayInjuries = (injuriesByGame.get(g.id) ?? [])
+            .filter((inj) => inj.team_id === g.away_team?.id)
+            .sort((a, b) => a.player_name.localeCompare(b.player_name))
           const awayRating = ratingByTeam.get(g.away_team?.id)
           const homeRating = ratingByTeam.get(g.home_team?.id)
+
+          // Graded independent of the tier filter above — this is a record of
+          // what was actually recommended, not a view that should change when
+          // Pete narrows the page to "Elite only."
+          const gradedRecs =
+            g.status === 'final' && g.home_score !== null && g.away_score !== null
+              ? allGameRecs
+                  .filter((r) => r.bet_category !== 'player_prop')
+                  .map((r) => ({ r, grade: gradeRecommendation(r, g.home_team?.name, g.away_team?.name, g.home_score, g.away_score) }))
+                  .filter((x): x is { r: any; grade: PickGrade } => x.grade !== null)
+              : []
+          const gradeTally = gradedRecs.reduce(
+            (acc, { grade }) => ({ ...acc, [grade]: acc[grade] + 1 }),
+            { win: 0, loss: 0, push: 0 } as Record<PickGrade, number>
+          )
 
           return (
             <div key={g.id} className="rounded-lg border border-border bg-card p-4">
@@ -279,6 +356,29 @@ export default async function WeekPage({
                   )}
                 </div>
               </div>
+
+              {/* Result box — only for concluded games, graded against every game-level pick we issued */}
+              {gradedRecs.length > 0 && (
+                <div className="mb-3 rounded-md border border-border/60 bg-background px-3 py-2">
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase text-muted-foreground">Our picks vs. the final</span>
+                    <span className="font-mono text-xs font-semibold text-foreground">
+                      {gradeTally.win}-{gradeTally.loss}
+                      {gradeTally.push > 0 ? `-${gradeTally.push}` : ''}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    {gradedRecs.map(({ r, grade }) => (
+                      <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span className="text-foreground">{r.description}</span>
+                        <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase ${GRADE_STYLE[grade]}`}>
+                          {grade}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {(awayRating || homeRating) && (
                 <div className="mb-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
@@ -349,61 +449,97 @@ export default async function WeekPage({
                 )}
               </div>
 
-              {/* Player Prop picks — underneath, same tier filter */}
+              {/* Player Prop picks — underneath, same tier filter. Collapsed by
+                  default (accordion arrow) since a full slate of props per
+                  game gets long fast; the count in the summary gives the
+                  scent without needing to open it. */}
               {anyPropRecs && (
-                <div className="mb-3">
-                  <div className="mb-1.5 text-xs font-semibold uppercase text-muted-foreground">Player Props</div>
-                  {propPickRecs.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {propPickRecs.map((r) => (
-                        <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 bg-background px-3 py-2 text-sm">
-                          <div className="flex items-center gap-2">
-                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${TIER_STYLE[r.tier]}`}>
-                              {r.tier}
-                            </span>
-                            <span className="font-medium text-foreground">{r.description}</span>
-                          </div>
-                          <div className="flex items-center gap-3 font-mono text-xs text-muted-foreground">
-                            <span>score {r.model_score.toFixed(0)}</span>
-                            {r.recommended_sportsbook && r.recommended_stake ? (
-                              <span className="font-semibold text-foreground">
-                                {r.recommended_sportsbook === 'draftkings' ? 'DK' : 'FD'} ${Number(r.recommended_stake).toFixed(2)}
+                <details className="group mb-3">
+                  <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs font-semibold uppercase text-muted-foreground [&::-webkit-details-marker]:hidden">
+                    <svg
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="h-3 w-3 flex-shrink-0 transition-transform group-open:rotate-90"
+                    >
+                      <path d="M6 4l8 6-8 6V4z" />
+                    </svg>
+                    Player Props ({propPickRecs.length})
+                  </summary>
+                  <div className="mt-1.5">
+                    {propPickRecs.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {propPickRecs.map((r) => (
+                          <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 bg-background px-3 py-2 text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${TIER_STYLE[r.tier]}`}>
+                                {r.tier}
                               </span>
-                            ) : (
-                              <span>no stake</span>
-                            )}
+                              <span className="font-medium text-foreground">{r.description}</span>
+                            </div>
+                            <div className="flex items-center gap-3 font-mono text-xs text-muted-foreground">
+                              <span>score {r.model_score.toFixed(0)}</span>
+                              {r.recommended_sportsbook && r.recommended_stake ? (
+                                <span className="font-semibold text-foreground">
+                                  {r.recommended_sportsbook === 'draftkings' ? 'DK' : 'FD'} ${Number(r.recommended_stake).toFixed(2)}
+                                </span>
+                              ) : (
+                                <span>no stake</span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">No prop plays at this tier.</p>
-                  )}
-                </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No prop plays at this tier.</p>
+                    )}
+                  </div>
+                </details>
               )}
 
-              {/* Injuries — only rendered when there's something on file */}
-              {gameInjuries.length > 0 && (
-                <div className="mb-3">
-                  <div className="mb-1.5 text-xs font-semibold uppercase text-muted-foreground">Injuries</div>
-                  <div className="space-y-1">
-                    {gameInjuries.map((inj) => {
-                      const teamName = inj.team_id === g.home_team?.id ? g.home_team?.name : inj.team_id === g.away_team?.id ? g.away_team?.name : ''
-                      return (
-                        <div key={inj.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 bg-background px-3 py-1.5 text-xs">
-                          <div className="text-foreground">
-                            {inj.player_name}
-                            {inj.is_qb && <span className="text-muted-foreground"> (QB)</span>}
-                            <span className="text-muted-foreground"> — {inj.position ?? '—'} · {teamName}</span>
+              {/* Injuries — home team on the left, away on the right, never
+                  intermixed. Collapsed by default (accordion arrow), same
+                  pattern as Player Props above. */}
+              {(homeInjuries.length > 0 || awayInjuries.length > 0) && (
+                <details className="group mb-3">
+                  <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs font-semibold uppercase text-muted-foreground [&::-webkit-details-marker]:hidden">
+                    <svg
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="h-3 w-3 flex-shrink-0 transition-transform group-open:rotate-90"
+                    >
+                      <path d="M6 4l8 6-8 6V4z" />
+                    </svg>
+                    Injuries ({homeInjuries.length + awayInjuries.length})
+                  </summary>
+                  <div className="mt-1.5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {([
+                      { teamName: g.home_team?.name, list: homeInjuries },
+                      { teamName: g.away_team?.name, list: awayInjuries },
+                    ] as const).map(({ teamName, list }, colIdx) => (
+                      <div key={colIdx}>
+                        <div className="mb-1 text-[10px] font-semibold uppercase text-muted-foreground">{teamName}</div>
+                        {list.length > 0 ? (
+                          <div className="space-y-1">
+                            {list.map((inj) => (
+                              <div key={inj.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 bg-background px-3 py-1.5 text-xs">
+                                <div className="text-foreground">
+                                  {inj.player_name}
+                                  {inj.is_qb && <span className="text-muted-foreground"> (QB)</span>}
+                                  <span className="text-muted-foreground"> — {inj.position ?? '—'}</span>
+                                </div>
+                                <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase ${INJURY_STYLE[inj.designation ?? ''] ?? 'bg-muted text-muted-foreground border-border'}`}>
+                                  {inj.designation ?? 'probable'}
+                                </span>
+                              </div>
+                            ))}
                           </div>
-                          <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase ${INJURY_STYLE[inj.designation ?? ''] ?? 'bg-muted text-muted-foreground border-border'}`}>
-                            {inj.designation ?? 'probable'}
-                          </span>
-                        </div>
-                      )
-                    })}
+                        ) : (
+                          <p className="text-xs text-muted-foreground">None reported.</p>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                </div>
+                </details>
               )}
 
               <details className="text-sm">
