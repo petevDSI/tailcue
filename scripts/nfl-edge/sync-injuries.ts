@@ -1,9 +1,25 @@
 // ============================================================================
-// NFL Edge Board — injury report sync (ESPN, free/keyless — verified real)
+// NFL Edge Board — injury report sync (ESPN, free/keyless)
 //
-// For each team playing in the given week, pulls current injuries from
-// ESPN's core API, resolves player name/position off that team's roster,
-// and upserts into nfl_edge.injuries against that week's game row.
+// Pulls the ENTIRE league's current injury report in one call (see
+// espn.ts's getAllCurrentInjuries — this replaced a broken per-team ESPN
+// core-API endpoint on 2026-09-10) and writes each relevant team's entries
+// against every game that team plays in the given week — nfl_edge.injuries
+// rows are scoped to one game, not just one team, per the existing schema.
+//
+// Status mapping notes (real distribution seen live: Active 509, Out 55,
+// Questionable 95, Doubtful 1, Injured Reserve 136, Suspension 4 — out of
+// ~800 league-wide entries):
+//  - ESPN's 'Active' status is the majority of entries and means the player
+//    is a full practice participant / not actually limited — it is NOT an
+//    injury designation in the fantasy/betting sense, so these are dropped
+//    entirely rather than forced into some designation.
+//  - ESPN's 'Suspension' status isn't an injury at all, but has the same
+//    practical effect on availability as 'out', and nfl_edge.injuries'
+//    designation column has no separate slot for it (out/doubtful/
+//    questionable/probable only) — so it's mapped to 'out' here. Rare
+//    (single digits league-wide) — a deliberate simplification, not a data
+//    error, and worth a real 'suspended' designation later if it matters.
 //
 // There's no unique constraint on nfl_edge.injuries to upsert against, so
 // this script deletes-then-inserts per (game_id, team_id) — simplest way to
@@ -14,7 +30,7 @@
 import { config } from 'dotenv'
 config({ path: '.env.local' }) // scripts run outside Next.js, which is what normally loads .env.local
 import { nflEdgeDb } from '../../src/lib/nfl-edge/supabase-admin'
-import { getTeamCurrentInjuries, getTeamRosterMap } from '../../src/lib/nfl-edge/espn'
+import { getAllCurrentInjuries } from '../../src/lib/nfl-edge/espn'
 
 const seasonYear = Number(process.argv[2])
 const week = Number(process.argv[3])
@@ -30,6 +46,8 @@ const STATUS_MAP: Record<string, 'out' | 'doubtful' | 'questionable' | 'probable
   Questionable: 'questionable',
   Probable: 'probable',
   'Injured Reserve': 'out',
+  Suspension: 'out', // not an injury, but same practical effect on availability — see header note
+  // 'Active' intentionally has no entry here — not a real injury designation, dropped below
 }
 
 async function main() {
@@ -46,6 +64,9 @@ async function main() {
     return
   }
 
+  console.log('Fetching league-wide injury report from ESPN...')
+  const injuriesByTeam = await getAllCurrentInjuries()
+
   let totalRows = 0
   for (const game of games as any[]) {
     for (const side of ['home', 'away'] as const) {
@@ -53,24 +74,20 @@ async function main() {
       const espnTeamId = side === 'home' ? game.teams_home?.espn_team_id : game.teams_away?.espn_team_id
       if (!espnTeamId) continue
 
-      const [injuries, rosterMap] = await Promise.all([
-        getTeamCurrentInjuries(espnTeamId),
-        getTeamRosterMap(espnTeamId),
-      ])
+      const entries = injuriesByTeam.get(String(espnTeamId)) ?? []
 
-      const rows = injuries
+      const rows = entries
         .map((inj) => {
-          const player = rosterMap.get(inj.athleteId)
           const designation = STATUS_MAP[inj.status] ?? null
-          if (!player || !designation) return null
+          if (!designation) return null // e.g. 'Active' — not a real injury
           return {
             game_id: game.id,
             team_id: teamId,
-            player_name: player.name,
-            position: player.position || null,
+            player_name: inj.playerName,
+            position: inj.position,
             designation,
             practice_status: null,
-            is_qb: player.position === 'QB',
+            is_qb: inj.position === 'QB',
             note: inj.note,
             source: 'espn',
             updated_at: new Date().toISOString(),

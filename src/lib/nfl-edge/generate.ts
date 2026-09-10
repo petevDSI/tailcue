@@ -43,11 +43,17 @@ export async function generateRecommendationsForWeek(seasonYear: number, week: n
     return { seasonYear, week, gameCount: 0, recommendationCount: 0 }
   }
 
+  // Ordered ascending so that, when a team has ratings snapshots from more
+  // than one as_of_week (e.g. week 1 and week 3), the later one wins in the
+  // Map below — Supabase doesn't guarantee row order without an explicit
+  // .order(), and this bug would otherwise silently pick an arbitrary
+  // snapshot once sync-power-ratings.ts has been run more than once.
   const { data: ratings } = await db
     .from('team_ratings')
     .select('team_id, off_rating, def_rating, as_of_week')
     .eq('season_year', seasonYear)
     .lte('as_of_week', week)
+    .order('as_of_week', { ascending: true })
   const latestRating = new Map<string, { off: number; def: number }>()
   for (const r of ratings ?? []) {
     latestRating.set(r.team_id, { off: r.off_rating, def: r.def_rating })

@@ -37,6 +37,9 @@ export default function NflEdgeLayout({ children }: { children: React.ReactNode 
             <Link href="/admin/nfl-edge" className="hover:text-foreground">
               Season
             </Link>
+            <Link href="/admin/nfl-edge/power-rankings" className="hover:text-foreground">
+              Power Rankings
+            </Link>
             <Link href="/admin/nfl-edge/bankroll" className="hover:text-foreground">
               Bankroll
             </Link>

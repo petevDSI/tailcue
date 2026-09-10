@@ -6,12 +6,14 @@
 //   sports.core.api.espn.com — the deeper "core" API, mostly returning
 //                              paginated { $ref } links you have to follow.
 // Used for: season schedule (already seeded once via migration — this is
-// the reusable/re-runnable version) and weekly injury reports (verified
-// live and real — see the 2026-09-09 test against team 12/KC below).
+// the reusable/re-runnable version) and weekly injury reports (the
+// league-wide site-API endpoint below — see getAllCurrentInjuries for the
+// 2026-09-10 note on why this replaced an earlier core-API approach).
 // ============================================================================
 
 const SITE_BASE = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl'
-const CORE_BASE = 'https://sports.core.api.espn.com/v2/sports/football/leagues/nfl'
+// The old sports.core.api.espn.com "core" API is no longer used here — its
+// per-team injuries endpoint broke (see getAllCurrentInjuries below).
 
 async function getJson<T = any>(url: string): Promise<T> {
   const res = await fetch(url)
@@ -62,68 +64,54 @@ export async function getTeamRosterMap(espnTeamId: string): Promise<Map<string, 
   return map
 }
 
-interface EspnRefList {
-  count: number
-  pageCount: number
-  items: Array<{ $ref: string }>
-}
-
-interface EspnInjuryDetail {
-  id: string
-  status: string // 'Questionable' | 'Doubtful' | 'Out' | 'Probable' | ...
-  date: string
-  shortComment?: string
-  athlete: { $ref: string }
-  details?: { type?: string }
-}
-
-export interface RawTeamInjury {
-  athleteId: string
-  status: string
-  date: string
+export interface RawInjuryEntry {
+  playerName: string
+  position: string | null
+  status: string // raw ESPN status string — 'Questionable' | 'Doubtful' | 'Out' | 'Probable' | 'Injured Reserve' | 'Suspension' | 'Active' | ...
   note: string | null
 }
 
 /**
- * Pulls team injuries, keeping only the most recent entry per athlete and
- * only entries from the last 10 days (a full-season history comes back
- * otherwise — ESPN doesn't scope this endpoint to "current week" itself).
+ * Pulls the ENTIRE league's current injury report in one call.
+ *
+ * NOTE (2026-09-10): this replaced a per-team CORE_BASE endpoint
+ * (`${CORE_BASE}/seasons/{year}/teams/{id}/injuries`) that this file's own
+ * comment had verified live and working just one day earlier, and which
+ * then started returning a genuine HTTP 404 for every team, including
+ * fully-populated past seasons — an unannounced breaking change on ESPN's
+ * undocumented API (the exact kind of risk this file has always called
+ * out — see the file header). Verified this replacement live: real,
+ * dated current entries, 32 teams, ~800 league-wide injury rows.
+ *
+ * This endpoint is simpler than the old approach, not just a workaround:
+ * player name and position come directly off each entry's `athlete`
+ * object, so the separate per-team roster-map lookup the old code needed
+ * (to turn an athlete id into a name/position) is no longer necessary.
  */
-export async function getTeamCurrentInjuries(espnTeamId: string): Promise<RawTeamInjury[]> {
-  const listUrl = `${CORE_BASE}/seasons/2026/teams/${espnTeamId}/injuries?page=1`
-  let list: EspnRefList
-  try {
-    list = await getJson<EspnRefList>(listUrl)
-  } catch {
-    return []
-  }
+export async function getAllCurrentInjuries(): Promise<Map<string, RawInjuryEntry[]>> {
+  const url = `${SITE_BASE}/injuries`
+  const data = await getJson<{
+    injuries: Array<{
+      id: string
+      injuries: Array<{
+        status: string
+        shortComment?: string
+        athlete?: { displayName?: string; position?: { abbreviation?: string } }
+      }>
+    }>
+  }>(url)
 
-  const refs = (list.items ?? []).slice(0, 25) // first page only — most recent first, empirically
-  const details = await Promise.all(
-    refs.map((r) =>
-      getJson<EspnInjuryDetail>(r.$ref).catch(() => null)
-    )
-  )
-
-  const cutoff = Date.now() - 10 * 86_400_000
-  const byAthlete = new Map<string, RawTeamInjury>()
-  for (const d of details) {
-    if (!d) continue
-    const ts = new Date(d.date).getTime()
-    if (ts < cutoff) continue
-    const athleteId = d.athlete.$ref.match(/athletes\/(\d+)/)?.[1]
-    if (!athleteId) continue
-    const existing = byAthlete.get(athleteId)
-    if (!existing || new Date(existing.date).getTime() < ts) {
-      byAthlete.set(athleteId, {
-        athleteId,
-        status: d.status,
-        date: d.date,
-        note: d.shortComment ?? null,
-      })
-    }
+  const map = new Map<string, RawInjuryEntry[]>()
+  for (const team of data.injuries ?? []) {
+    const entries: RawInjuryEntry[] = (team.injuries ?? []).map((inj) => ({
+      playerName: inj.athlete?.displayName ?? 'Unknown',
+      position: inj.athlete?.position?.abbreviation ?? null,
+      status: inj.status,
+      note: inj.shortComment ?? null,
+    }))
+    map.set(team.id, entries)
   }
-  return Array.from(byAthlete.values())
+  return map
 }
 
 // ---------------------------------------------------------------------------

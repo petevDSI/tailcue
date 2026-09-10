@@ -90,6 +90,15 @@ export default async function WeekPage({
     .in('game_id', gameIds)
     .order('updated_at', { ascending: false })
 
+  // Ordered ascending so a later as_of_week snapshot overwrites an earlier
+  // one below (same pattern/reasoning as generate.ts's rating lookup).
+  const { data: ratings } = await db
+    .from('team_ratings')
+    .select('team_id, off_rating, def_rating, as_of_week')
+    .eq('season_year', seasonYear)
+    .lte('as_of_week', week)
+    .order('as_of_week', { ascending: true })
+
   // Supabase/PostgREST caps a single query at 1,000 rows by default — a
   // full week of props (16 games x ~130 rows) can exceed that, so page
   // through with .range() until a partial page tells us we're done.
@@ -130,6 +139,11 @@ export default async function WeekPage({
     const list = injuriesByGame.get(i.game_id) ?? []
     list.push(i)
     injuriesByGame.set(i.game_id, list)
+  }
+
+  const ratingByTeam = new Map<string, { off: number; def: number }>()
+  for (const r of ratings ?? []) {
+    ratingByTeam.set(r.team_id, { off: r.off_rating, def: r.def_rating })
   }
 
   // Same dedupe/merge props-scoring.ts uses for the model, so the page and
@@ -198,6 +212,8 @@ export default async function WeekPage({
             a.player.localeCompare(b.player) || a.market.localeCompare(b.market)
           )
           const gameInjuries = (injuriesByGame.get(g.id) ?? []).sort((a, b) => a.player_name.localeCompare(b.player_name))
+          const awayRating = ratingByTeam.get(g.away_team?.id)
+          const homeRating = ratingByTeam.get(g.home_team?.id)
 
           return (
             <div key={g.id} className="rounded-lg border border-border bg-card p-4">
@@ -216,6 +232,21 @@ export default async function WeekPage({
                   {g.is_divisional ? ' · Divisional' : ''}
                 </div>
               </div>
+
+              {(awayRating || homeRating) && (
+                <div className="mb-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
+                  <span>
+                    Power: {g.away_team?.name}{' '}
+                    <span className="font-mono font-semibold text-foreground">
+                      {awayRating ? `${(awayRating.off + awayRating.def >= 0 ? '+' : '')}${(awayRating.off + awayRating.def).toFixed(1)}` : '—'}
+                    </span>{' '}
+                    vs {g.home_team?.name}{' '}
+                    <span className="font-mono font-semibold text-foreground">
+                      {homeRating ? `${(homeRating.off + homeRating.def >= 0 ? '+' : '')}${(homeRating.off + homeRating.def).toFixed(1)}` : '—'}
+                    </span>
+                  </span>
+                </div>
+              )}
 
               {/* Market box — always visible, current lines at a glance */}
               <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
