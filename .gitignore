@@ -35,3 +35,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env*
+
+# Claude Code local settings (machine-specific tool-permission cache)
+.claude/settings.local.json
+
