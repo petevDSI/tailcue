@@ -163,6 +163,12 @@ export default async function WeekPage({
           >
             Parlay Builder →
           </Link>
+          <Link
+            href={`/admin/nfl-edge/week/${week}/clv?season=${seasonYear}`}
+            className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground"
+          >
+            CLV →
+          </Link>
           <form
             action={async () => {
               'use server'

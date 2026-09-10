@@ -15,6 +15,7 @@
 
 import { nflEdgeDb } from './supabase-admin'
 import { scoreGame, tierOf, deriveTeamInjuryImpact, deriveRestCode, DEFAULT_SETTINGS } from './scoring'
+import { deriveSandwichRisk, type ScheduleGameRef } from './schedule-context'
 import { allocateBankroll, type AllocationCandidate } from './bankroll'
 import { mergeLatestProps, deriveTeammateInjuryBoosts, scoreProp } from './props-scoring'
 import type { Sportsbook } from './types'
@@ -61,6 +62,37 @@ export async function generateRecommendationsForWeek(seasonYear: number, week: n
 
   const { data: weather } = await db.from('weather_snapshots').select('game_id, wind_mph, is_dome_or_indoor')
   const weatherByGame = new Map<string, any>((weather ?? []).map((w: any) => [w.game_id, w]))
+
+  // Sandwich/lookahead detection needs each team's FULL-SEASON schedule
+  // (272 games, cheap to pull in one go) — "next game" and "previous game"
+  // for a team usually fall outside the week actually being scored.
+  const { data: seasonGames } = await db
+    .from('games')
+    .select('id, game_time, is_divisional, home_team_id, away_team_id')
+    .eq('season_year', seasonYear)
+    .order('game_time', { ascending: true })
+
+  interface TeamScheduleEntry extends ScheduleGameRef {
+    gameId: string
+  }
+  const gamesByTeam = new Map<string, TeamScheduleEntry[]>()
+  for (const g of (seasonGames ?? []) as any[]) {
+    const entry: TeamScheduleEntry = { gameId: g.id, isDivisional: g.is_divisional, gameTime: g.game_time }
+    for (const teamId of [g.home_team_id, g.away_team_id]) {
+      const list = gamesByTeam.get(teamId) ?? []
+      list.push(entry)
+      gamesByTeam.set(teamId, list)
+    }
+  }
+  for (const list of Array.from(gamesByTeam.values())) {
+    list.sort((a, b) => new Date(a.gameTime).getTime() - new Date(b.gameTime).getTime())
+  }
+  function adjacentGames(teamId: string, gameId: string): { prev: ScheduleGameRef | null; next: ScheduleGameRef | null } {
+    const list = gamesByTeam.get(teamId) ?? []
+    const idx = list.findIndex((g) => g.gameId === gameId)
+    if (idx === -1) return { prev: null, next: null }
+    return { prev: list[idx - 1] ?? null, next: list[idx + 1] ?? null }
+  }
 
   const { data: injuries } = await db
     .from('injuries')
@@ -131,6 +163,12 @@ export async function generateRecommendationsForWeek(seasonYear: number, week: n
 
     const w = weatherByGame.get(game.id)
 
+    const thisGameRef: ScheduleGameRef = { isDivisional: game.is_divisional, gameTime: game.game_time }
+    const { prev: homePrev, next: homeNext } = adjacentGames(game.home_team_id, game.id)
+    const { prev: awayPrev, next: awayNext } = adjacentGames(game.away_team_id, game.id)
+    const homeSandwich = deriveSandwichRisk(thisGameRef, homePrev, homeNext)
+    const awaySandwich = deriveSandwichRisk(thisGameRef, awayPrev, awayNext)
+
     const result = scoreGame(
       {
         homeOff: homeRating.off,
@@ -144,6 +182,8 @@ export async function generateRecommendationsForWeek(seasonYear: number, week: n
         homeQuestionableQb: homeInj.hasQuestionableQb,
         awayQuestionableQb: awayInj.hasQuestionableQb,
         isDivisional: game.is_divisional,
+        homeSandwichRisk: homeSandwich.lookaheadRisk || homeSandwich.hangoverRisk,
+        awaySandwichRisk: awaySandwich.lookaheadRisk || awaySandwich.hangoverRisk,
         windMph: w?.wind_mph ?? 0,
         isDome: w?.is_dome_or_indoor ?? game.home_team?.is_dome ?? false,
         marketSpreadHome: currentRow?.home_spread ?? null,

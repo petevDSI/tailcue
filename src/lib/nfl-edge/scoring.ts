@@ -186,6 +186,9 @@ export interface ScoreGameInput {
   homeQuestionableQb: boolean
   awayQuestionableQb: boolean
   isDivisional: boolean
+  /** True when this team is in a documented "sandwich"/lookahead spot — see schedule-context.ts's deriveSandwichRisk. */
+  homeSandwichRisk: boolean
+  awaySandwichRisk: boolean
   windMph: number
   isDome: boolean
   /** Consensus current home spread, e.g. -3 means home favored by 3. */
@@ -290,8 +293,19 @@ export function scoreGame(g: ScoreGameInput, settings: ScoreSettings = DEFAULT_S
   let atsSideIsHome: boolean | null = null
   if (spreadEdgeHome !== null) {
     atsSideIsHome = spreadEdgeHome >= 0
+    // Modest, undordered penalty when the picked side is in a documented
+    // "sandwich"/lookahead spot (schedule-context.ts) — same soft-signal
+    // treatment as the divisional and QB-questionable penalties above, not
+    // baked into the projected margin itself.
+    const sandwichPenaltyAts = (atsSideIsHome ? g.homeSandwichRisk : g.awaySandwichRisk) ? 3 : 0
     atsScore = clamp(
-      50 + Math.min(Math.abs(spreadEdgeHome), 6) * 6 + lineMoveBonus + rlmBonus - qbQuestionablePenalty - divisionalPenaltyAts,
+      50 +
+        Math.min(Math.abs(spreadEdgeHome), 6) * 6 +
+        lineMoveBonus +
+        rlmBonus -
+        qbQuestionablePenalty -
+        divisionalPenaltyAts -
+        sandwichPenaltyAts,
       0,
       100
     )

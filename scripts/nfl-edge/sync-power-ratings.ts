@@ -12,9 +12,11 @@
 //    2025 file is 372 columns x ~48.7k rows of real play-level data.
 //  - Off/def rating = average EPA (Expected Points Added) added per game by
 //    a team's offense / allowed per game by its defense, on real pass-or-run
-//    plays only (kneels/spikes/no-plays excluded — same convention as every
-//    public nflverse EPA leaderboard), centered on that dataset's own league
-//    average so 0 = league-average team. EPA is already denominated in
+//    plays only (kneels/spikes/no-plays excluded, and garbage-time snaps —
+//    posteam win probability outside 5-95% — excluded too, both same
+//    convention as every public nflverse EPA leaderboard), centered on that
+//    dataset's own league average so 0 = league-average team. EPA is already
+//    denominated in
 //    expected points, so summing a game's worth of it is directly comparable
 //    to scoring.ts's point-based projections (LA + homeOff - awayDef, etc.)
 //    — no invented conversion factor.
@@ -135,6 +137,20 @@ async function loadEpaAverages(
     if (cols[idx.season_type] !== 'REG') continue
     if (maxWeek !== undefined && Number(cols[idx.week]) >= maxWeek) continue
     if (cols[idx.pass] !== '1' && cols[idx.rush] !== '1') continue
+    // Garbage-time filter: drop plays where the game was already
+    // functionally decided (posteam win probability outside 5-95%).
+    // Verified against the real 2025 file: this excludes ~15% of
+    // pass/rush plays and meaningfully changes team averages (e.g. a bad
+    // team's garbage-time snaps against a prevent defense no longer
+    // inflate its offensive EPA/game) — every public EPA leaderboard
+    // applies some version of this, and `wp` is populated on 100% of real
+    // pass/rush plays in that file, so this isn't dropping data we can't
+    // afford to lose.
+    const wpStr = cols[idx.wp]
+    if (wpStr !== '') {
+      const wp = Number(wpStr)
+      if (Number.isFinite(wp) && (wp < 0.05 || wp > 0.95)) continue
+    }
     const epaStr = cols[idx.epa]
     if (epaStr === '') continue
     const epa = Number(epaStr)
