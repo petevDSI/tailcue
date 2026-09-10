@@ -22,14 +22,20 @@ import { computeBlendedRatings } from '../../src/lib/nfl-edge/power-rating-model
 
 const seasonYear = Number(process.argv[2])
 const asOfWeek = Number(process.argv[3])
+// Defaults to 'flat' (the original, validated method) — see
+// computeBlendedRatings's header comment in power-rating-model.ts for why
+// the SOS-adjusted alternative isn't the default yet (tested against the
+// real backtest 2026-09-10, mixed/negative full-sample result). Pass 'sos'
+// here only for deliberate live experimentation.
+const ratingMethod = (process.argv[4] === 'sos' ? 'sos' : 'flat') as 'flat' | 'sos'
 if (!seasonYear || !asOfWeek) {
-  console.error('Usage: npx tsx scripts/nfl-edge/sync-power-ratings.ts <seasonYear> <asOfWeek>')
+  console.error('Usage: npx tsx scripts/nfl-edge/sync-power-ratings.ts <seasonYear> <asOfWeek> [ratingMethod=flat|sos]')
   process.exit(1)
 }
 
 async function main() {
-  console.log(`Computing ${seasonYear} ratings as of week ${asOfWeek} (prior season: ${seasonYear - 1})...`)
-  const ratings = await computeBlendedRatings(seasonYear, asOfWeek)
+  console.log(`Computing ${seasonYear} ratings as of week ${asOfWeek} (prior season: ${seasonYear - 1}, method: ${ratingMethod})...`)
+  const ratings = await computeBlendedRatings(seasonYear, asOfWeek, ratingMethod)
   if (!ratings) {
     console.error(`No play-by-play file found for ${seasonYear - 1} — can't build a prior. Aborting.`)
     process.exit(1)

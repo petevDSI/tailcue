@@ -47,7 +47,7 @@ const UNIT_PCT = 0.01 // 1 "unit" (scoring.unitsFor) = 1% of that book's bankrol
  * from the promo's terms) — false positives just mean a bet that could have
  * gone to either book anyway got a mild nudge, not a real mis-stake.
  */
-function promoMatchesBet(promo: Promo, candidate: AllocationCandidate): boolean {
+export function promoMatchesBet(promo: Promo, candidate: AllocationCandidate): boolean {
   if (!promo.is_active) return false
   const now = Date.now()
   if (promo.starts_at && new Date(promo.starts_at).getTime() > now) return false

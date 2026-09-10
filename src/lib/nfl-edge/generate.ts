@@ -14,7 +14,7 @@
 // ============================================================================
 
 import { nflEdgeDb } from './supabase-admin'
-import { scoreGame, tierOf, deriveTeamInjuryImpact, deriveRestCode, DEFAULT_SETTINGS } from './scoring'
+import { scoreGame, tierOf, atsTierOf, deriveTeamInjuryImpact, deriveRestCode, DEFAULT_SETTINGS } from './scoring'
 import { deriveSandwichRisk, type ScheduleGameRef } from './schedule-context'
 import { allocateBankroll, type AllocationCandidate } from './bankroll'
 import { mergeLatestProps, deriveTeammateInjuryBoosts, scoreProp } from './props-scoring'
@@ -221,7 +221,7 @@ export async function generateRecommendationsForWeek(seasonYear: number, week: n
     }
 
     if (result.atsScore !== null) {
-      const atsTier = tierOf(result.atsScore)
+      const atsTier = atsTierOf(result.atsScore)
       if (atsTier.n < 4) {
         const sideName = result.atsSideIsHome ? game.home_team?.name : game.away_team?.name
         const spreadForSide = result.atsSideIsHome ? currentRow?.home_spread : -currentRow?.home_spread

@@ -153,6 +153,14 @@ export interface Promo {
   ends_at: string | null
   is_active: boolean
   captured_at: string
+  /** profit_boost: fractional boost on the PROFIT portion only (0.25 = 25%). Not the stake. */
+  boost_pct: number | null
+  /** odds_boost: the new American odds on the specific boosted market, replacing the normal market price. */
+  boosted_odds: number | null
+  /** bonus_bet: face value of the free-bet credit. risk_free: dollar amount refunded (usually as a bonus bet) on a loss. */
+  bonus_amount: number | null
+  /** Optional cap on the real-money stake eligible for the boost. Null = no stated cap. */
+  max_stake: number | null
 }
 
 export interface SportsbookAccount {
@@ -174,6 +182,8 @@ export interface BetRecommendation {
   tier: Tier
   model_edge: number | null
   model_prob: number | null
+  /** American odds actually used for this pick (whichever book got the stake, else best/only known price). Null if never priced. */
+  odds: number | null
   recommended_sportsbook: Sportsbook | null
   recommended_stake: number | null
   promo_id: number | null

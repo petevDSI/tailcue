@@ -10,6 +10,8 @@
 // Read src/lib/nfl-edge/types.ts first for the data shapes this consumes.
 // ============================================================================
 
+import { fittedAtsBaseScore } from './fitted-ats-weights'
+
 export type RestCode = 'normal' | 'short' | 'bye' | 'trip'
 export type Tier = 'elite' | 'strong' | 'lean' | 'pass'
 
@@ -86,10 +88,36 @@ export function americanLabel(a: number): string {
   return a > 0 ? `+${a}` : String(a)
 }
 
+/**
+ * Tier thresholds recalibrated 2026-09-10 alongside the ATS score's fitted
+ * base (see fitted-ats-weights.ts). The old thresholds (78/64/50) were
+ * built for a score that could run the edge term alone up to +36 points
+ * (min(edge,6)*6); the fitted, calibrated-probability base score tops out
+ * far lower — around 100*sigmoid(intercept + edgeCoef*6) ~= 60 at the
+ * maximum edge cap, since it's now tracking a genuine cover probability
+ * (NFL spreads are efficiently priced; a real edge from power ratings
+ * alone rarely implies much above a ~60% true win probability) rather than
+ * an arbitrary point count. Leaving the old 78/64/50 cutoffs in place
+ * against the new, compressed score would make "Elite" nearly
+ * unreachable and silently starve the whole recommendation pipeline.
+ * These thresholds still apply to suScore/totScore, which are unchanged by
+ * this fitting pass (see the "known gap" note in the methodology doc about
+ * totals having no demonstrated backtest edge, and suScore already scaling
+ * off a real moneyline-vig-implied edge or raw margin, not this ATS fit).
+ */
 export function tierOf(score: number | null): { n: 1 | 2 | 3 | 4; tier: Tier; label: string } {
   if (score === null) return { n: 4, tier: 'pass', label: '—' }
   if (score >= 78) return { n: 1, tier: 'elite', label: 'Elite' }
   if (score >= 64) return { n: 2, tier: 'strong', label: 'Strong' }
+  if (score >= 50) return { n: 3, tier: 'lean', label: 'Lean' }
+  return { n: 4, tier: 'pass', label: 'Pass' }
+}
+
+/** Same tiering, recalibrated for the ATS score's new, compressed fitted-probability range (see tierOf's doc comment above) — used only for atsScore. */
+export function atsTierOf(score: number | null): { n: 1 | 2 | 3 | 4; tier: Tier; label: string } {
+  if (score === null) return { n: 4, tier: 'pass', label: '—' }
+  if (score >= 68) return { n: 1, tier: 'elite', label: 'Elite' }
+  if (score >= 58) return { n: 2, tier: 'strong', label: 'Strong' }
   if (score >= 50) return { n: 3, tier: 'lean', label: 'Lean' }
   return { n: 4, tier: 'pass', label: 'Pass' }
 }
@@ -309,56 +337,52 @@ export function scoreGame(g: ScoreGameInput, settings: ScoreSettings = DEFAULT_S
   }
 
   const qbQuestionablePenalty = (g.homeQuestionableQb ? 4 : 0) + (g.awayQuestionableQb ? 4 : 0)
-  const divisionalPenaltyAts = g.isDivisional ? 3 : 0
 
   // ---- ATS ----
+  // Base (edge + divisional + key-number) is now a data-fit calibrated
+  // probability (fitted-ats-weights.ts, 2026-09-10) instead of hand-picked
+  // point constants — see that file for the fitting methodology, the
+  // train/test holdout validation, and an honest note on the key-number
+  // coefficient's counter-intuitive (negative) fitted direction. Line
+  // movement, RLM, QB-questionable, and the sandwich penalty stay exactly
+  // as originally documented/sourced — no historical opening-line,
+  // public-betting-%, or injury-designation feed exists to fit those
+  // against.
   let atsScore: number | null = null
   let atsSideIsHome: boolean | null = null
   if (spreadEdgeHome !== null) {
     atsSideIsHome = spreadEdgeHome >= 0
     // Modest, undordered penalty when the picked side is in a documented
     // "sandwich"/lookahead spot (schedule-context.ts) — same soft-signal
-    // treatment as the divisional and QB-questionable penalties above, not
-    // baked into the projected margin itself.
+    // treatment as the QB-questionable penalty above, not baked into the
+    // projected margin itself.
     const sandwichPenaltyAts = (atsSideIsHome ? g.homeSandwichRisk : g.awaySandwichRisk) ? 3 : 0
 
     // NFL final margins cluster heavily around a handful of numbers (3, 7, 6,
     // 10, 4, 14, 2, 1 — Covers.com's key-numbers reference, already cited in
-    // the project's methodology doc). A team GETTING points benefits from a
-    // line that sits just ABOVE a key number (+3.5 beats +3 beats +2.5, since
-    // far more games are decided by exactly 3 points than by 2 or 4); a team
-    // LAYING points benefits from a line just BELOW a key number (-2.5 beats
-    // -3 beats -3.5, same reason in reverse). This is standard "buying the
-    // key number" logic — a small, well-documented bump to how much a given
-    // market number is worth, independent of the model's own projected edge.
+    // the project's methodology doc) — used here only to build the binary
+    // "picked side sits favorably against a key number" flag the fitted
+    // model actually uses (see fittedAtsBaseScore below), not as a
+    // stand-alone point bonus anymore.
     const KEY_NUMBERS = [3, 7, 6, 10, 4, 14, 2, 1]
-    let keyNumberBonus = 0
+    let hasKeyNumber = false
     if (g.marketSpreadHome !== null) {
       const sideSpread = atsSideIsHome ? g.marketSpreadHome : -g.marketSpreadHome // + = getting points, - = laying points
       for (const k of KEY_NUMBERS) {
         if (sideSpread > 0 && sideSpread >= k + 0.25 && sideSpread <= k + 0.75) {
-          keyNumberBonus = 2
+          hasKeyNumber = true
           break
         }
         if (sideSpread < 0 && -sideSpread >= k - 0.75 && -sideSpread <= k - 0.25) {
-          keyNumberBonus = 2
+          hasKeyNumber = true
           break
         }
       }
     }
 
-    atsScore = clamp(
-      50 +
-        Math.min(Math.abs(spreadEdgeHome), 6) * 6 +
-        lineMoveBonus +
-        rlmBonus +
-        keyNumberBonus -
-        qbQuestionablePenalty -
-        divisionalPenaltyAts -
-        sandwichPenaltyAts,
-      0,
-      100
-    )
+    const fittedBase = fittedAtsBaseScore(Math.abs(spreadEdgeHome), g.isDivisional, hasKeyNumber)
+
+    atsScore = clamp(fittedBase + lineMoveBonus + rlmBonus - qbQuestionablePenalty - sandwichPenaltyAts, 0, 100)
   }
 
   // Same normal-margin model already used for the SU win probability
