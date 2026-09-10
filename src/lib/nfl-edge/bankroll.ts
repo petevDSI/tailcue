@@ -30,6 +30,8 @@ export interface AllocationCandidate {
   description: string
   /** American odds at each book, when known from manual entry. Null = unknown/not priced yet. */
   oddsByBook: Partial<Record<Sportsbook, number>>
+  /** Which game this bet belongs to, when known — lets a game-scoped promo (e.g. "boost on SF@LAR only") match only that game instead of the whole slate. */
+  gameId?: string | null
 }
 
 export interface Allocation {
@@ -56,9 +58,26 @@ const UNIT_PCT = 0.01 // 1 "unit" (scoring.unitsFor) = 1% of that book's bankrol
  */
 export function promoMatchesBet(promo: Promo, candidate: AllocationCandidate): boolean {
   if (!promo.is_active) return false
+  if (promo.redeemed_at) return false // one-time-use promos stop matching once logged as used, independent of the is_active toggle
   const now = Date.now()
   if (promo.starts_at && new Date(promo.starts_at).getTime() > now) return false
   if (promo.ends_at && new Date(promo.ends_at).getTime() < now) return false
+  // Game-scoped promos (e.g. "50% boost on SF@LAR only") only match that one game.
+  // If either side doesn't know the game, don't reject — better a mild false
+  // positive than silently hiding a promo because of a missing id somewhere.
+  if (promo.game_id && candidate.gameId && promo.game_id !== candidate.gameId) return false
+  // A promo restricted to Parlay/SGP/etc. (and not Single) doesn't apply to
+  // the bankroll allocator, which only ever prices single bets.
+  if (promo.eligible_bet_types && promo.eligible_bet_types.length > 0 && !promo.eligible_bet_types.includes('single')) return false
+  // Real DK/FD promos commonly cap how short a favorite or how long a
+  // shot can qualify (e.g. "-200 Min | +200000 Max Odds"). American odds
+  // compare correctly on the plain number line for this purpose (all
+  // negative/favorite prices sort below all positive/underdog prices).
+  const oddsAtBook = candidate.oddsByBook[promo.sportsbook as Sportsbook]
+  if (oddsAtBook !== undefined) {
+    if (promo.min_odds !== null && oddsAtBook < promo.min_odds) return false
+    if (promo.max_odds !== null && oddsAtBook > promo.max_odds) return false
+  }
   if (!promo.applies_to) return true // generic sitewide promo (e.g. site-wide odds boost token)
 
   const hay = promo.applies_to.toLowerCase()

@@ -100,6 +100,15 @@ export async function createPromo(formData: FormData) {
   const bonusAmount = formData.get('bonus_amount') ? Number(formData.get('bonus_amount')) : null
   const maxStake = formData.get('max_stake') ? Number(formData.get('max_stake')) : null
   const isActive = formData.get('is_active') === 'on'
+  const gameId = String(formData.get('game_id') || '').trim() || null
+  const minWager = formData.get('min_wager') ? Number(formData.get('min_wager')) : null
+  const minOdds = formData.get('min_odds') ? Number(formData.get('min_odds')) : null
+  const maxOdds = formData.get('max_odds') ? Number(formData.get('max_odds')) : null
+  const eligibleBetTypes = formData.getAll('eligible_bet_types').map(String).filter(Boolean)
+  const bonusPerUnit = formData.get('bonus_per_unit') ? Number(formData.get('bonus_per_unit')) : null
+  const unitLabel = String(formData.get('unit_label') || '').trim() || null
+  const unitCap = formData.get('unit_cap') ? Number(formData.get('unit_cap')) : null
+  const poolAmount = formData.get('pool_amount') ? Number(formData.get('pool_amount')) : null
 
   const db = nflEdgeDb()
   const { error } = await db.from('promos').insert({
@@ -117,6 +126,15 @@ export async function createPromo(formData: FormData) {
     boosted_odds: boostedOdds,
     bonus_amount: bonusAmount,
     max_stake: maxStake,
+    game_id: gameId,
+    min_wager: minWager,
+    min_odds: minOdds,
+    max_odds: maxOdds,
+    eligible_bet_types: eligibleBetTypes.length > 0 ? eligibleBetTypes : null,
+    bonus_per_unit: bonusPerUnit,
+    unit_label: unitLabel,
+    unit_cap: unitCap,
+    pool_amount: poolAmount,
   })
   if (error) throw error
 
@@ -126,6 +144,23 @@ export async function createPromo(formData: FormData) {
 export async function togglePromoActive(id: number, isActive: boolean) {
   const db = nflEdgeDb()
   const { error } = await db.from('promos').update({ is_active: isActive }).eq('id', id)
+  if (error) throw error
+  revalidatePath('/admin/nfl-edge/promos')
+}
+
+/**
+ * Marks a promo used (or un-marks it, in case of a mis-click). Distinct
+ * from is_active: is_active means "currently valid/enabled," redeemed_at
+ * means "already spent" — a one-time-use boost or bonus stops matching new
+ * bets the moment it's redeemed, independent of whether it's still inside
+ * its own active window (see promoMatchesBet in bankroll.ts).
+ */
+export async function setPromoRedeemed(id: number, redeemed: boolean) {
+  const db = nflEdgeDb()
+  const { error } = await db
+    .from('promos')
+    .update({ redeemed_at: redeemed ? new Date().toISOString() : null })
+    .eq('id', id)
   if (error) throw error
   revalidatePath('/admin/nfl-edge/promos')
 }

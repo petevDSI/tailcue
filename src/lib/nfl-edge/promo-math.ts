@@ -53,6 +53,14 @@ export interface PromoEvInput {
   stake: number
   /** Commonly cited rule-of-thumb for a bonus-bet credit's real cash-equivalent value once redeemed — not exact. Only used for risk_free. */
   bonusRedemptionRate?: number
+  /**
+   * per_event_bonus only: a game-specific estimate of how many qualifying
+   * events (e.g. total TDs in the game) will occur, if one's been computed.
+   * Omit to fall back to a league-average placeholder — see the
+   * per_event_bonus case below for why that's honestly a rough number, not
+   * a real per-game projection yet.
+   */
+  expectedUnits?: number
 }
 
 export interface PromoEvResult {
@@ -79,8 +87,18 @@ function notApplicable(reason: string): PromoEvResult {
 }
 
 export function evaluatePromo(input: PromoEvInput): PromoEvResult {
-  const { promo, marketOdds, modelProb, stake, bonusRedemptionRate = 0.75 } = input
+  const { promo, marketOdds, modelProb, stake, bonusRedemptionRate = 0.75, expectedUnits } = input
   if (modelProb <= 0 || modelProb >= 1) return notApplicable('Model probability out of range.')
+  if (promo.redeemed_at) return notApplicable('Already marked redeemed — this promo is used up.')
+  if (promo.min_wager !== null && stake < promo.min_wager) {
+    return notApplicable(`Below this promo's $${promo.min_wager.toFixed(0)} minimum wager.`)
+  }
+  if (promo.min_odds !== null && marketOdds < promo.min_odds) {
+    return notApplicable(`Odds ${marketOdds} are shorter than this promo's minimum of ${promo.min_odds}.`)
+  }
+  if (promo.max_odds !== null && marketOdds > promo.max_odds) {
+    return notApplicable(`Odds ${marketOdds} are longer than this promo's maximum of ${promo.max_odds}.`)
+  }
 
   const stakeUsed = promo.max_stake !== null ? Math.min(stake, promo.max_stake) : stake
   const baselineDecimal = decimalFromAmerican(marketOdds)
@@ -157,6 +175,58 @@ export function evaluatePromo(input: PromoEvInput): PromoEvResult {
         notes,
       }
     }
+    case 'per_event_bonus': {
+      // e.g. DK's "Every TD Pays" — one qualifying wager unlocks a bonus
+      // bet for EVERY occurrence of some event in one named game (a TD
+      // scored by either team), win or lose on the original bet. There's
+      // no real game-specific "expected TD count" model output yet, so
+      // absent one, this falls back to a documented league-average NFL
+      // total (~4.5 TDs/game across recent seasons) — an honest
+      // placeholder, not a real per-game projection. Pass `expectedUnits`
+      // once a real estimate exists (e.g. derived from the game's own
+      // projected total) to replace it.
+      if (promo.bonus_per_unit === null) {
+        return notApplicable("No per-unit bonus amount on file yet for this promo — waiting on its exact per-event dollar figure.")
+      }
+      const LEAGUE_AVG_UNITS_PER_GAME = 4.5
+      const rawUnits = expectedUnits ?? LEAGUE_AVG_UNITS_PER_GAME
+      const units = promo.unit_cap !== null ? Math.min(rawUnits, promo.unit_cap) : rawUnits
+      const totalFaceValue = units * promo.bonus_per_unit
+      // Valuing the resulting bonus bets requires assuming what they'd be
+      // used on — there's no way around that. Using this same candidate's
+      // own price/probability as the stand-in is the most defensible
+      // available assumption, not a guarantee those bonus bets land on an
+      // equally good spot.
+      const promoEv = totalFaceValue * modelProb * (baselineDecimal - 1)
+      notes.push(
+        `Est. ${units.toFixed(1)} qualifying "${promo.unit_label ?? 'events'}" × $${promo.bonus_per_unit.toFixed(2)} ≈ $${totalFaceValue.toFixed(2)} in bonus bets (${
+          expectedUnits !== undefined ? 'game-specific estimate' : 'league-average placeholder — no game-specific estimate supplied'
+        }). Valued as if reinvested on a similarly-priced pick — a rough approximation, not a guaranteed outcome.`
+      )
+      return {
+        applicable: true,
+        baselineEv: 0,
+        promoEv,
+        extraEv: promoEv,
+        extraEvPctOfStake: totalFaceValue > 0 ? (promoEv / totalFaceValue) * 100 : 0,
+        stakeUsed: totalFaceValue,
+        notes,
+      }
+    }
+    case 'pool_share': {
+      // e.g. DK's "King of the End Zone" — a pari-mutuel pool split among
+      // every customer who backed the outcome that actually happens (the
+      // game's longest TD scorer). Real payout depends on how many OTHER
+      // customers also picked that exact outcome, which is not observable
+      // from outside DK. Deliberately not modeled — a precise-looking EV
+      // number here would be a guess dressed up as math. Logged for
+      // reference only.
+      return notApplicable(
+        `Pari-mutuel pool promo — real payout depends on how many other customers backed the same winning outcome, which isn't observable.${
+          promo.pool_amount !== null ? ` Pool: $${promo.pool_amount.toLocaleString()}.` : ''
+        } Logged for reference, not ranked by EV.`
+      )
+    }
     case 'other':
     default:
       return notApplicable('Generic/"other" promo type has no computable fields — logged for reference only.')
@@ -173,6 +243,8 @@ export interface PromoCandidate {
   marketOdds: number | null
   modelProb: number | null
   stake: number
+  /** Which game this pick belongs to, when known — lets a game-scoped promo match only that game. */
+  gameId?: string | null
 }
 
 export interface RankedPromoUse extends PromoEvResult {
@@ -199,6 +271,7 @@ export function rankPromoAcrossRecommendations(promo: Promo, candidates: PromoCa
       betCategory: c.betCategory,
       description: c.description,
       oddsByBook: { [promo.sportsbook]: c.marketOdds } as Partial<Record<Sportsbook, number>>,
+      gameId: c.gameId ?? null,
     }
     if (!promoMatchesBet(promo, asAllocationCandidate)) continue
 

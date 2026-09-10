@@ -8,14 +8,23 @@ const PROMO_TYPES = [
   { value: 'odds_boost', label: 'Odds boost (specific market re-priced)' },
   { value: 'bonus_bet', label: 'Bonus bet / free-bet credit' },
   { value: 'risk_free', label: 'Risk-free / first-bet insurance' },
+  { value: 'per_event_bonus', label: 'Per-event bonus (e.g. "Every TD Pays" — bonus bet per qualifying event)' },
+  { value: 'pool_share', label: 'Pool-share / pari-mutuel (e.g. "King of the End Zone" — no EV math, logged for reference)' },
   { value: 'other', label: 'Other (logged for reference, no EV math)' },
+]
+
+const BET_TYPES = [
+  { value: 'single', label: 'Single' },
+  { value: 'parlay', label: 'Parlay' },
+  { value: 'sgp', label: 'SGP' },
+  { value: 'sgpx', label: 'SGPx' },
 ]
 
 const fieldLabel = 'mb-1 block text-xs font-semibold uppercase text-muted-foreground'
 const fieldInput =
   'w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary'
 
-export function PromoForm() {
+export function PromoForm({ games = [] }: { games?: { id: string; label: string }[] }) {
   const [promoType, setPromoType] = useState('profit_boost')
 
   return (
@@ -38,6 +47,18 @@ export function PromoForm() {
             ))}
           </select>
         </div>
+      </div>
+
+      <div>
+        <label className={fieldLabel}>Game (optional — leave as &quot;Any game&quot; for a league-wide promo)</label>
+        <select name="game_id" className={fieldInput} defaultValue="">
+          <option value="">Any game (league-wide)</option>
+          {games.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>
@@ -77,6 +98,57 @@ export function PromoForm() {
           <input name="max_stake" type="number" step="0.01" min="0" placeholder="Leave blank if uncapped" className={fieldInput} />
         </div>
       )}
+
+      {promoType === 'per_event_bonus' && (
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className={fieldLabel}>Bonus $ per event</label>
+            <input name="bonus_per_unit" type="number" step="0.01" min="0" placeholder="e.g. 5" className={fieldInput} />
+          </div>
+          <div>
+            <label className={fieldLabel}>What counts as one event</label>
+            <input name="unit_label" placeholder='e.g. "touchdown by either team"' className={fieldInput} />
+          </div>
+          <div>
+            <label className={fieldLabel}>Max events paid (optional)</label>
+            <input name="unit_cap" type="number" step="1" min="1" placeholder="Leave blank if uncapped" className={fieldInput} />
+          </div>
+        </div>
+      )}
+
+      {promoType === 'pool_share' && (
+        <div>
+          <label className={fieldLabel}>Total pool size ($, optional — reference only, not used in any EV math)</label>
+          <input name="pool_amount" type="number" step="1" min="0" placeholder="e.g. 5000000" className={fieldInput} />
+        </div>
+      )}
+
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className={fieldLabel}>Min wager ($, optional)</label>
+          <input name="min_wager" type="number" step="0.01" min="0" placeholder="e.g. 5" className={fieldInput} />
+        </div>
+        <div>
+          <label className={fieldLabel}>Min odds (optional)</label>
+          <input name="min_odds" type="number" step="1" placeholder="e.g. -200" className={fieldInput} />
+        </div>
+        <div>
+          <label className={fieldLabel}>Max odds (optional)</label>
+          <input name="max_odds" type="number" step="1" placeholder="e.g. 200000" className={fieldInput} />
+        </div>
+      </div>
+
+      <div>
+        <label className={fieldLabel}>Eligible bet types (leave all unchecked if the promo doesn&apos;t say)</label>
+        <div className="flex flex-wrap gap-4">
+          {BET_TYPES.map((t) => (
+            <label key={t.value} className="flex items-center gap-1.5 text-sm text-foreground">
+              <input type="checkbox" name="eligible_bet_types" value={t.value} className="h-4 w-4 accent-primary" />
+              {t.label}
+            </label>
+          ))}
+        </div>
+      </div>
 
       <div>
         <label className={fieldLabel}>Applies to (free text — matched loosely against bet type)</label>

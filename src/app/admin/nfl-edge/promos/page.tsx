@@ -15,6 +15,7 @@ import { rankPromoAcrossRecommendations } from '@/lib/nfl-edge/promo-math'
 import type { PromoCandidate } from '@/lib/nfl-edge/promo-math'
 import type { Promo } from '@/lib/nfl-edge/types'
 import { PromoToggle } from './_components/PromoToggle'
+import { PromoRedeemedToggle } from './_components/PromoRedeemedToggle'
 import { PromoForm } from './_components/PromoForm'
 import { deletePromo } from '../actions'
 
@@ -30,6 +31,8 @@ const PROMO_TYPE_LABEL: Record<string, string> = {
   odds_boost: 'Odds boost',
   bonus_bet: 'Bonus bet',
   risk_free: 'Risk-free bet',
+  per_event_bonus: 'Per-event bonus',
+  pool_share: 'Pool-share',
   other: 'Other',
 }
 
@@ -43,6 +46,12 @@ function fmtPromoTerms(p: Promo): string {
       return p.bonus_amount !== null ? `$${p.bonus_amount.toFixed(0)} free-bet credit` : 'No face value on file'
     case 'risk_free':
       return p.bonus_amount !== null ? `Up to $${p.bonus_amount.toFixed(0)} refunded on a loss` : 'No refund amount on file'
+    case 'per_event_bonus':
+      return p.bonus_per_unit !== null
+        ? `$${p.bonus_per_unit.toFixed(2)} per ${p.unit_label ?? 'event'}${p.unit_cap !== null ? ` (max ${p.unit_cap})` : ''}`
+        : 'No per-event $ on file yet'
+    case 'pool_share':
+      return p.pool_amount !== null ? `Share of a $${p.pool_amount.toLocaleString()} pool` : 'Pool size not on file'
     default:
       return '—'
   }
@@ -104,9 +113,39 @@ export default async function PromosPage({
       marketOdds: r.odds,
       modelProb: r.model_prob,
       stake: r.recommended_stake ?? 100, // nominal $100 reference stake when the allocator hasn't sized this one yet
+      gameId: r.game_id ?? null,
     }))
 
-  const activePromos: Promo[] = (promos ?? []).filter((p: Promo) => p.is_active && p.promo_type !== 'other')
+  // Game labels, for the "scoped to one game" badge and the add-promo form's
+  // game picker — this season's slate is small enough (272 games) to just
+  // pull in full rather than trying to scope the query further.
+  const { data: gamesRaw } = await db
+    .from('games')
+    .select('id, week_number, home_team_id, away_team_id, game_time')
+    .eq('season_year', seasonYear)
+    .order('game_time', { ascending: true })
+  const gameLabelById = new Map<string, string>()
+  const gameOptions = (gamesRaw ?? []).map((g: any) => {
+    const label = `Wk${g.week_number}: ${g.away_team_id} @ ${g.home_team_id} — ${new Date(g.game_time).toLocaleDateString('en-US', {
+      month: 'numeric',
+      day: 'numeric',
+    })}`
+    gameLabelById.set(g.id, label)
+    return { id: g.id, label }
+  })
+
+  // Promos actually usable for the EV ranking below: enabled, not yet
+  // redeemed, and a real computable type. per_event_bonus IS ranked (it has
+  // real, if approximate, math); pool_share and other never are — see
+  // promo-math.ts's evaluatePromo for why.
+  const activePromos: Promo[] = (promos ?? []).filter(
+    (p: Promo) => p.is_active && !p.redeemed_at && p.promo_type !== 'other' && p.promo_type !== 'pool_share'
+  )
+  // Everything else still worth seeing on this page, just not EV-ranked:
+  // pool-share/pari-mutuel promos and anything logged as "other."
+  const referenceOnlyPromos: Promo[] = (promos ?? []).filter(
+    (p: Promo) => p.is_active && !p.redeemed_at && (p.promo_type === 'other' || p.promo_type === 'pool_share')
+  )
 
   return (
     <div>
@@ -147,10 +186,12 @@ export default async function PromosPage({
           <thead className="bg-muted/40 text-left text-xs font-semibold uppercase text-muted-foreground">
             <tr>
               <th className="px-3 py-2">Active</th>
+              <th className="px-3 py-2">Used</th>
               <th className="px-3 py-2">Book</th>
               <th className="px-3 py-2">Title</th>
               <th className="px-3 py-2">Type</th>
               <th className="px-3 py-2">Terms on file</th>
+              <th className="px-3 py-2">Game</th>
               <th className="px-3 py-2">Applies to</th>
               <th className="px-3 py-2">Window</th>
               <th className="px-3 py-2" />
@@ -162,10 +203,16 @@ export default async function PromosPage({
                 <td className="px-3 py-2">
                   <PromoToggle id={p.id} isActive={p.is_active} />
                 </td>
+                <td className="px-3 py-2">
+                  <PromoRedeemedToggle id={p.id} redeemed={p.redeemed_at !== null} />
+                </td>
                 <td className="px-3 py-2 capitalize">{p.sportsbook}</td>
                 <td className="px-3 py-2 font-medium text-foreground">{p.title}</td>
                 <td className="px-3 py-2 text-muted-foreground">{PROMO_TYPE_LABEL[p.promo_type] ?? p.promo_type}</td>
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{fmtPromoTerms(p)}</td>
+                <td className="px-3 py-2 text-xs text-muted-foreground">
+                  {p.game_id ? gameLabelById.get(p.game_id) ?? 'Unknown game' : 'Any game'}
+                </td>
                 <td className="px-3 py-2 text-xs text-muted-foreground">{p.applies_to ?? 'any'}</td>
                 <td className="px-3 py-2 text-xs text-muted-foreground">
                   {p.starts_at ? new Date(p.starts_at).toLocaleDateString() : '—'}
@@ -183,7 +230,7 @@ export default async function PromosPage({
             ))}
             {(promos ?? []).length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-sm text-muted-foreground">
+                <td colSpan={10} className="px-3 py-8 text-center text-sm text-muted-foreground">
                   No promos logged yet — add the first one below.
                 </td>
               </tr>
@@ -192,9 +239,33 @@ export default async function PromosPage({
         </table>
       </div>
 
+      {referenceOnlyPromos.length > 0 && (
+        <div className="mb-8 rounded-lg border border-dashed border-border bg-card p-4">
+          <h2 className="mb-1 text-sm font-semibold text-foreground">Logged for reference only (not EV-ranked)</h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Pool/pari-mutuel promos and anything logged as &quot;other&quot; — real payout for these isn&apos;t computable
+            from what&apos;s knowable outside the sportsbook&apos;s own systems (see the note on each below), so they&apos;re
+            shown here rather than mixed into the ranked EV tables.
+          </p>
+          <ul className="space-y-2 text-sm">
+            {referenceOnlyPromos.map((p) => (
+              <li key={p.id} className="border-t border-border pt-2 first:border-t-0 first:pt-0">
+                <span className="font-medium text-foreground">{p.title}</span>{' '}
+                <span className="text-xs uppercase text-muted-foreground">
+                  ({p.sportsbook} · {PROMO_TYPE_LABEL[p.promo_type] ?? p.promo_type})
+                </span>
+                <div className="text-xs text-muted-foreground">
+                  {fmtPromoTerms(p)} — {p.game_id ? gameLabelById.get(p.game_id) ?? 'Unknown game' : 'Any game'}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="mb-8">
         <h2 className="mb-3 text-lg font-semibold text-foreground">Add a promo</h2>
-        <PromoForm />
+        <PromoForm games={gameOptions} />
       </div>
 
       <div>

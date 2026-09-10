@@ -22,7 +22,7 @@ export type NewsFlagType =
   | 'coaching_change'
   | 'other'
 export type Sentiment = 'negative' | 'neutral' | 'positive'
-export type PromoType = 'odds_boost' | 'bonus_bet' | 'profit_boost' | 'risk_free' | 'other'
+export type PromoType = 'odds_boost' | 'bonus_bet' | 'profit_boost' | 'risk_free' | 'per_event_bonus' | 'pool_share' | 'other'
 export type BetResult = 'pending' | 'win' | 'loss' | 'push'
 
 export interface Team {
@@ -161,6 +161,26 @@ export interface Promo {
   bonus_amount: number | null
   /** Optional cap on the real-money stake eligible for the boost. Null = no stated cap. */
   max_stake: number | null
+  /** When set, this promo only applies to this one game (not the whole slate). Null = league-wide/any game. */
+  game_id: string | null
+  /** When set, this promo has already been used — stop ranking/allocating it, independent of is_active. */
+  redeemed_at: string | null
+  /** Minimum stake required to qualify, if stated. */
+  min_wager: number | null
+  /** Minimum American odds a bet must be at to qualify (e.g. "-200 Min"). */
+  min_odds: number | null
+  /** Maximum American odds a bet may be at to qualify (e.g. "+200000 Max"). */
+  max_odds: number | null
+  /** Which bet shapes this promo allows, e.g. ['single'], ['single','parlay','sgp','sgpx']. Null/empty = assume single-only (today's ranking views are singles-only). */
+  eligible_bet_types: string[] | null
+  /** per_event_bonus only: dollar bonus-bet value per qualifying event (e.g. per TD scored). */
+  bonus_per_unit: number | null
+  /** per_event_bonus only: human label for what a "unit" is, e.g. "touchdown scored by either team". */
+  unit_label: string | null
+  /** per_event_bonus only: max number of qualifying units this promo pays out on, if stated. */
+  unit_cap: number | null
+  /** pool_share only: total size of the shared bonus-bet pool, for reference display — EV is not modeled (see promo-math.ts). */
+  pool_amount: number | null
 }
 
 export interface SportsbookAccount {
