@@ -33,6 +33,8 @@ import Link from 'next/link'
 import { nflEdgeDb } from '@/lib/nfl-edge/supabase-admin'
 import { mergeLatestProps, groupPropsByGame } from '@/lib/nfl-edge/props-scoring'
 import { saveMarketLine, recomputeWeek, syncWeekScores } from '../../actions'
+import { TrackBetToggle } from '../../_components/TrackBetToggle'
+import { ActionButton } from '../../_components/ActionButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,6 +44,14 @@ const TIER_STYLE: Record<string, string> = {
   lean: 'bg-muted text-muted-foreground border-border',
   pass: 'bg-muted/50 text-muted-foreground border-border',
 }
+
+// Matches the same "top bets" cut the Top Bets page uses (top 15 by
+// model_score among Elite/Strong, straight bets and props tracked
+// separately) — a game-level or prop pick highlighted here is one that
+// also shows up on that shortlist, so Pete can see it without leaving
+// the week page.
+const TOP_BET_BADGE = 'bg-amber-500/15 text-amber-500 border-amber-500/40'
+const TOP_BET_RING = 'ring-2 ring-amber-500/50'
 
 const INJURY_STYLE: Record<string, string> = {
   out: 'bg-destructive/15 text-destructive border-destructive/30',
@@ -175,6 +185,33 @@ export default async function WeekPage({
     .in('game_id', gameIds)
     .order('updated_at', { ascending: false })
 
+  const { data: placedSingles } = await db
+    .from('bets_placed')
+    .select('recommendation_id')
+    .eq('season_year', seasonYear)
+    .eq('week_number', week)
+    .eq('bet_type', 'single')
+  const trackedSingleIds = new Set((placedSingles ?? []).map((p: any) => p.recommendation_id))
+
+  // Same "top bets" cut as the Top Bets page: top 15 by model_score among
+  // Elite/Strong, straight game-level picks and player props tracked as
+  // two separate shortlists.
+  const isTopBetTier = (r: any) => r.tier === 'elite' || r.tier === 'strong'
+  const topGameRecIds = new Set(
+    (recs ?? [])
+      .filter((r: any) => r.bet_category !== 'player_prop' && isTopBetTier(r))
+      .sort((a: any, b: any) => b.model_score - a.model_score)
+      .slice(0, 15)
+      .map((r: any) => r.id)
+  )
+  const topPropRecIds = new Set(
+    (recs ?? [])
+      .filter((r: any) => r.bet_category === 'player_prop' && isTopBetTier(r))
+      .sort((a: any, b: any) => b.model_score - a.model_score)
+      .slice(0, 15)
+      .map((r: any) => r.id)
+  )
+
   // Ordered ascending so a later as_of_week snapshot overwrites an earlier
   // one below (same pattern/reasoning as generate.ts's rating lookup).
   const { data: ratings } = await db
@@ -260,29 +297,26 @@ export default async function WeekPage({
           >
             CLV →
           </Link>
-          <form
+          <ActionButton
+            label="Sync scores"
+            pendingLabel="Syncing…"
+            successMessage="Scores are up to date."
+            className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground"
             action={async () => {
               'use server'
               await syncWeekScores(seasonYear, week)
             }}
-          >
-            <button
-              type="submit"
-              className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground"
-            >
-              Sync scores
-            </button>
-          </form>
-          <form
+          />
+          <ActionButton
+            label="Recompute recommendations"
+            pendingLabel="Recomputing…"
+            successMessage="Recommendations are up to date."
+            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
             action={async () => {
               'use server'
               await recomputeWeek(seasonYear, week)
             }}
-          >
-            <button type="submit" className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
-              Recompute recommendations
-            </button>
-          </form>
+          />
         </div>
       </div>
 
@@ -439,26 +473,45 @@ export default async function WeekPage({
                 <div className="mb-1.5 text-xs font-semibold uppercase text-muted-foreground">Game Lines &amp; Total</div>
                 {gameLineRecs.length > 0 ? (
                   <div className="space-y-1.5">
-                    {gameLineRecs.map((r) => (
-                      <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 bg-background px-3 py-2 text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${TIER_STYLE[r.tier]}`}>
-                            {r.tier}
-                          </span>
-                          <span className="font-medium text-foreground">{r.description}</span>
-                        </div>
-                        <div className="flex items-center gap-3 font-mono text-xs text-muted-foreground">
-                          <span>score {r.model_score.toFixed(0)}</span>
-                          {r.recommended_sportsbook && r.recommended_stake ? (
-                            <span className="font-semibold text-foreground">
-                              {r.recommended_sportsbook === 'draftkings' ? 'DK' : 'FD'} ${Math.round(Number(r.recommended_stake))}
+                    {gameLineRecs.map((r) => {
+                      const isTopBet = topGameRecIds.has(r.id)
+                      return (
+                        <div
+                          key={r.id}
+                          className={`flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 bg-background px-3 py-2 text-sm ${isTopBet ? TOP_BET_RING : ''}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${TIER_STYLE[r.tier]}`}>
+                              {r.tier}
                             </span>
-                          ) : (
-                            <span>no stake</span>
-                          )}
+                            {isTopBet && (
+                              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${TOP_BET_BADGE}`}>
+                                ★ Top bet
+                              </span>
+                            )}
+                            <span className="font-medium text-foreground">{r.description}</span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 font-mono text-xs text-muted-foreground">
+                            <span>score {r.model_score.toFixed(0)}</span>
+                            {r.recommended_sportsbook && r.recommended_stake ? (
+                              <span className="font-semibold text-foreground">
+                                {r.recommended_sportsbook === 'draftkings' ? 'DK' : 'FD'} ${Math.round(Number(r.recommended_stake))}
+                              </span>
+                            ) : (
+                              <span>no stake</span>
+                            )}
+                            {r.recommended_sportsbook && r.recommended_stake && r.odds !== null && (
+                              <TrackBetToggle
+                                recommendationId={r.id}
+                                seasonYear={seasonYear}
+                                week={week}
+                                tracked={trackedSingleIds.has(r.id)}
+                              />
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground">
@@ -486,26 +539,45 @@ export default async function WeekPage({
                   <div className="mt-1.5">
                     {propPickRecs.length > 0 ? (
                       <div className="space-y-1.5">
-                        {propPickRecs.map((r) => (
-                          <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 bg-background px-3 py-2 text-sm">
-                            <div className="flex items-center gap-2">
-                              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${TIER_STYLE[r.tier]}`}>
-                                {r.tier}
-                              </span>
-                              <span className="font-medium text-foreground">{r.description}</span>
-                            </div>
-                            <div className="flex items-center gap-3 font-mono text-xs text-muted-foreground">
-                              <span>score {r.model_score.toFixed(0)}</span>
-                              {r.recommended_sportsbook && r.recommended_stake ? (
-                                <span className="font-semibold text-foreground">
-                                  {r.recommended_sportsbook === 'draftkings' ? 'DK' : 'FD'} ${Math.round(Number(r.recommended_stake))}
+                        {propPickRecs.map((r) => {
+                          const isTopBet = topPropRecIds.has(r.id)
+                          return (
+                            <div
+                              key={r.id}
+                              className={`flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 bg-background px-3 py-2 text-sm ${isTopBet ? TOP_BET_RING : ''}`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${TIER_STYLE[r.tier]}`}>
+                                  {r.tier}
                                 </span>
-                              ) : (
-                                <span>no stake</span>
-                              )}
+                                {isTopBet && (
+                                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${TOP_BET_BADGE}`}>
+                                    ★ Top bet
+                                  </span>
+                                )}
+                                <span className="font-medium text-foreground">{r.description}</span>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-3 font-mono text-xs text-muted-foreground">
+                                <span>score {r.model_score.toFixed(0)}</span>
+                                {r.recommended_sportsbook && r.recommended_stake ? (
+                                  <span className="font-semibold text-foreground">
+                                    {r.recommended_sportsbook === 'draftkings' ? 'DK' : 'FD'} ${Math.round(Number(r.recommended_stake))}
+                                  </span>
+                                ) : (
+                                  <span>no stake</span>
+                                )}
+                                {r.recommended_sportsbook && r.recommended_stake && r.odds !== null && (
+                                  <TrackBetToggle
+                                    recommendationId={r.id}
+                                    seasonYear={seasonYear}
+                                    week={week}
+                                    tracked={trackedSingleIds.has(r.id)}
+                                  />
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     ) : (
                       <p className="text-xs text-muted-foreground">No prop plays at this tier.</p>
